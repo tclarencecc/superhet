@@ -21,20 +21,21 @@ class Database:
                 raise Exception("Database server mode have undefined collection.")
             self.collection = collection
     
-    def create(self, src: str, file="", txt="", html = "") -> None:
-        sens = list[str]
-        if file != "":
+    def create(self, input: str, src: str, chunk: int, alphabet=True) -> None:
+        sentences = list[str]
+
+        if input.startswith("./"):
             try:
-                f = open(file)
+                f = open(input)
             except FileNotFoundError:
-                print(f + " not found.")
+                print(input + " not found.")
             else:
-                sens = chunker.split(f.read(), chunker.SplitType.PARAGRAPH)
-        elif txt != "":
-            sens = chunker.split(txt, chunker.SplitType.PARAGRAPH)
-        elif html != "":
+                sentences = chunker.split(f.read(), chunk, alphabet=alphabet)
+        elif input.startswith("<!DOCTYPE html>"):
             # TODO
             pass
+        else:
+            sentences = chunker.split(input, chunk, alphabet=alphabet)
 
         if self.client.collection_exists(self.collection) == False:
             self.client.create_collection(self.collection, VectorParams(
@@ -45,10 +46,10 @@ class Database:
             self.collection,
             [PointStruct(
                 id=uuid.uuid4().hex,
-                vector=_stm.encode(sen).tolist(),
-                payload={ "text": sen, "source": src }
+                vector=_stm.encode(sentence).tolist(),
+                payload={ "text": sentence, "source": src }
             )
-            for sen in sens],
+            for sentence in sentences],
         )
 
         # indexing payload.source may be necessary..
