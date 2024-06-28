@@ -3,6 +3,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, PointStruct, Distance, Filter, FieldCondition, MatchValue
 import uuid
 import chunker
+import warnings
+
+# suppress `resume_download` deprecated warning
+warnings.filterwarnings("ignore", category=FutureWarning, module="huggingface_hub")
 
 _stm = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -46,6 +50,9 @@ class Database:
             )
             for sen in sens],
         )
+
+        # indexing payload.source may be necessary..
+        # https://qdrant.tech/documentation/concepts/indexing/
 
     def read(self, query: str, limit=1, combine=True) -> str | list[tuple[str, float]]:
         if query == "":

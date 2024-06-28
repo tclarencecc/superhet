@@ -1,10 +1,8 @@
 # top level warning suppressors
-# `resume_download` deprecated
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="huggingface_hub")
 # 'Unable to close http connection', qdrant logs in :root so setting level on root is necessary
 import logging
 logging.getLogger().setLevel(logging.ERROR)
+
 
 from db import Database
 from llm import Llm
