@@ -17,7 +17,7 @@ class Database:
                 raise Exception("Database server mode have undefined collection.")
             self.collection = collection
     
-    def insert(self, src: str, file="", txt="", html = "") -> None:
+    def create(self, src: str, file="", txt="", html = "") -> None:
         sens = list[str]
         if file != "":
             try:
@@ -75,4 +75,7 @@ class Database:
                 match=MatchValue(value=src)
             )]
         ))
+
+    def drop(self, collection: str) -> None:
+        self.client.delete_collection(collection)
     

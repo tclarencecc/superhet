@@ -12,14 +12,14 @@ db = Database(host=DB_HOST, collection="my collection")
 ops = "read"
 
 
-
-if ops == "insert":
-    db.insert("ffx", file="./input.txt")
+if ops == "create":
+    db.create("ffx", file="./test/input.txt")
 elif ops == "read":
     query = "where can wakka be found?"
     ctx = db.read(query)
-
     llm = Llm(host=LLM_HOST)
     print("\n\n\n" + llm.run(ctx, query) + "\n\n\n")
 elif ops == "delete":
     db.delete("ffx")
+elif ops == "drop":
+    db.drop("my collection")
