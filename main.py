@@ -1,3 +1,11 @@
+# top level warning suppressors
+# `resume_download` deprecated
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="huggingface_hub")
+# 'Unable to close http connection', qdrant logs in :root so setting level on root is necessary
+import logging
+logging.getLogger().setLevel(logging.ERROR)
+
 from db import Database
 from llm import Llm
 
@@ -18,7 +26,7 @@ elif ops == "read":
     query = "where can wakka be found?"
     ctx = db.read(query)
     llm = Llm(host=LLM_HOST)
-    print("\n\n\n" + llm.run(ctx, query) + "\n\n\n")
+    print("\n" + llm.run(ctx, query) + "\n")
 elif ops == "delete":
     db.delete("ffx")
 elif ops == "drop":
