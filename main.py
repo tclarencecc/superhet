@@ -19,7 +19,7 @@ ops = "read"
 
 
 if ops == "create":
-    db.create("./test/input.txt", "ffx", 500)
+    db.create("./xxx.txt", "ffx", 500)
 elif ops == "read":
     query = "where can wakka be found?"
     ctx = db.read(query)
