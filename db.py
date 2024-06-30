@@ -8,15 +8,14 @@ import os
 os.environ["FASTEMBED_CACHE_PATH"] = "./fastembed"
 
 class Database:
-    def __init__(self, host="", collection="") -> None:
+    def __init__(self, host: str, collection: str) -> None:
         if host == "":
-            self.client = QdrantClient(":memory:")
-            self.collection = "temp" # db is temp only, just use any name for collection
-        else:
-            self.client = QdrantClient(host)
-            if collection == "":
-                raise Exception("Database server mode has undefined collection.")
-            self.collection = collection
+            raise Exception("Database has undefined host.")
+        if collection == "":
+            raise Exception("Database has undefined collection.")
+
+        self.client = QdrantClient(host)
+        self.collection = collection
     
     def create(self, input: str, src: str, chunk: int, alphabet=True) -> None:
         documents = list[str]
