@@ -50,3 +50,6 @@ venv.bak/
 # others
 .DS_Store
 .vscode/
+
+# contents will be re-downloaded if not present
+fastembed/

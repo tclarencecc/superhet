@@ -3,13 +3,10 @@
 import logging
 logging.getLogger().setLevel(logging.ERROR)
 
-
 from db import Database
 from llm import Llm
 from util import benchmark
 
-CLI_PATH = "./llama-cli"
-MODEL_PATH = "../llama/models/qwen2-1_5b-instruct-q4_k_m.gguf"
 DB_HOST = "http://localhost:6333"
 LLM_HOST = "http://127.0.0.1:8080"
 
@@ -28,7 +25,7 @@ def read() -> str:
 @benchmark("infer")
 def infer(ctx: str):
     llm = Llm(host=LLM_HOST)
-    print(llm.run(ctx, query) + "\n")
+    print(llm.infer(ctx, query) + "\n")
 
 @benchmark("delete")
 def delete():

@@ -1,14 +1,11 @@
-from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
-from qdrant_client.models import VectorParams, PointStruct, Distance, Filter, FieldCondition, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 import uuid
 import chunker
-import warnings
+import os
 
-# suppress `resume_download` deprecated warning
-warnings.filterwarnings("ignore", category=FutureWarning, module="huggingface_hub")
-
-_stm = SentenceTransformer("all-MiniLM-L6-v2")
+# qdrant fastembed reads from this env-var for embedding model path
+os.environ["FASTEMBED_CACHE_PATH"] = "./fastembed"
 
 class Database:
     def __init__(self, host="", collection="") -> None:
@@ -18,11 +15,11 @@ class Database:
         else:
             self.client = QdrantClient(host)
             if collection == "":
-                raise Exception("Database server mode have undefined collection.")
+                raise Exception("Database server mode has undefined collection.")
             self.collection = collection
     
     def create(self, input: str, src: str, chunk: int, alphabet=True) -> None:
-        sentences = list[str]
+        documents = list[str]
 
         if input.startswith("./"):
             try:
@@ -30,51 +27,37 @@ class Database:
             except FileNotFoundError:
                 print(input + " not found.")
             else:
-                sentences = chunker.split(f.read(), chunk, alphabet=alphabet)
+                documents = chunker.split(f.read(), chunk, alphabet=alphabet)
         elif input.startswith("<!DOCTYPE html>"):
             # TODO
             pass
         else:
-            sentences = chunker.split(input, chunk, alphabet=alphabet)
+            documents = chunker.split(input, chunk, alphabet=alphabet)
 
-        if self.client.collection_exists(self.collection) == False:
-            self.client.create_collection(self.collection, VectorParams(
-                size=_stm.get_sentence_embedding_dimension(),
-                distance=Distance.COSINE,
-            ))
-        self.client.upload_points(
-            self.collection,
-            [PointStruct(
-                id=uuid.uuid4().hex,
-                vector=_stm.encode(sentence).tolist(),
-                payload={ "text": sentence, "source": src }
-            )
-            for sentence in sentences],
-        )
+        ids = []
+        metadata = []
+        for doc in documents:
+            ids.append(uuid.uuid4().hex)
+            metadata.append({ "source": src })
+
+        self.client.add(self.collection, documents, metadata=metadata, ids=ids)
 
         # indexing payload.source may be necessary..
         # https://qdrant.tech/documentation/concepts/indexing/
 
-    def read(self, query: str, limit=1, combine=True) -> str | list[tuple[str, float]]:
+    def read(self, query: str, limit=1) -> str:
         if query == "":
             raise Exception("Database.read undefined query.")
 
-        hits = self.client.search(
-            self.collection,
-            query_vector=_stm.encode(query).tolist(),
-            limit=limit,
-        )
-
-        if combine:
-            ret = ""
-            for hit in hits:
-                ret = ret + "\n\n" + hit.payload["text"]
-            return ret
-        else:
-            ret = []
-            for hit in hits:
-                ret.append((hit.payload["text"], hit.score))
-            return ret
+        hits = self.client.query(self.collection, query, limit=limit)
+        ret = ""
+        
+        for hit in hits:
+            if ret != "":
+                ret = ret + "\n"
+            # score in hit.metadata["score"], if needed
+            ret = ret + hit.metadata["document"]
+        return ret
         
     def delete(self, src: str) -> None:
         self.client.delete(self.collection, points_selector=Filter(
