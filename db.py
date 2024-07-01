@@ -4,6 +4,7 @@ import uuid
 import chunker
 import config
 from config import ConfigKey
+from util import benchmark
 import os
 
 # qdrant fastembed reads from this env-var for embedding model path
@@ -12,6 +13,7 @@ os.environ["FASTEMBED_CACHE_PATH"] = config.get(ConfigKey.FASTEMBED_CACHE)
 def _client_factory() -> QdrantClient:
     return QdrantClient(config.get(ConfigKey.DB_HOST))
     
+@benchmark("db create")
 def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> None:
     documents = list[str]
 
@@ -39,6 +41,7 @@ def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> 
     # indexing payload.source may be necessary..
     # https://qdrant.tech/documentation/concepts/indexing/
 
+@benchmark("db read")
 def read(collection: str, query: str, limit=1) -> str:
     if query == "":
         raise Exception("Database.read undefined query.")
@@ -53,6 +56,7 @@ def read(collection: str, query: str, limit=1) -> str:
         ret = ret + hit.metadata["document"]
     return ret
     
+@benchmark("db delete")
 def delete(collection: str, src: str) -> None:
     _client_factory().delete(collection, points_selector=Filter(
         must=[FieldCondition(
@@ -61,5 +65,6 @@ def delete(collection: str, src: str) -> None:
         )]
     ))
 
+@benchmark("db drop")
 def drop(collection: str) -> None:
     _client_factory().delete_collection(collection)

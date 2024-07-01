@@ -1,9 +1,11 @@
 import requests
 import config
 from config import ConfigKey
+from util import benchmark
 
 _host = config.get(ConfigKey.LLM_HOST)
 
+@benchmark("llm inference")
 def inference(ctx: str, query: str) -> str:
     if ctx == "":
         return "Unable to answer as no data can be found in the record."
