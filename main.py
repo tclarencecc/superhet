@@ -3,33 +3,27 @@
 import logging
 logging.getLogger().setLevel(logging.ERROR)
 
-from db import Database
-from llm import Llm
+import db
+import llm
 from util import benchmark
-
-DB_HOST = "http://localhost:6333"
-LLM_HOST = "http://127.0.0.1:8080"
 
 query = "where can wakka be found in the beginning?"
 
-db = Database(host=DB_HOST, collection="my collection")
-
 @benchmark("create")
 def create():
-    db.create("./xxx.txt", "ffx", 500)
+    db.create("my collection", "./xxx.txt", "ffx", 500)
 
 @benchmark("read")
 def read() -> str:
-    return db.read(query)
+    return db.read("my collection", query)
     
 @benchmark("infer")
 def infer(ctx: str):
-    llm = Llm(host=LLM_HOST)
-    print(llm.infer(ctx, query) + "\n")
+    print(llm.inference(ctx, query) + "\n")
 
 @benchmark("delete")
 def delete():
-    db.delete("ffx")
+    db.delete("my collection", "ffx")
 
 @benchmark("drop")
 def drop():

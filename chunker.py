@@ -1,9 +1,3 @@
-from enum import Enum
-
-class SplitType(Enum):
-    CHAPTER = 0
-    PARAGRAPH = 1
-    SENTENCE = 2
 
 def _split_to_sentences(input: str, alphabet=True) -> list[tuple[str, int]]:
     stop_marks = "!?."
