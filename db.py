@@ -68,9 +68,9 @@ async def read(collection: str, query: str, limit=1) -> str:
     ret = ""
     for hit in hits:
         if ret != "":
-            ret = ret + "\n"
+            ret += "\n"
         # score in hit.metadata["score"], if needed
-        ret = ret + hit.metadata["document"]
+        ret += hit.metadata["document"]
 
     return ret
     

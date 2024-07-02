@@ -72,7 +72,7 @@ def _split_to_sentences(input: str, alphabet=True) -> list[tuple[str, int]]:
     sentence = ""
 
     for char in input:
-        sentence = sentence + char
+        sentence += char
 
         if char in stop_marks:
             sentence = sentence.strip()
@@ -111,9 +111,9 @@ def split(input: str, chunk_size: int, overlap=0.25, alphabet=True) -> list[str]
 
         while idx < len(sentences):
             if alphabet and sentence != "":
-                sentence = sentence + " "
-            sentence = sentence + sentences[idx][0]
-            total = total + sentences[idx][1]
+                sentence += " "
+            sentence += sentences[idx][0]
+            total += sentences[idx][1]
 
             if total >= chunk_size:
                 # sentence collected up to this point is enough, output it
@@ -122,7 +122,7 @@ def split(input: str, chunk_size: int, overlap=0.25, alphabet=True) -> list[str]
                 # apply sliding window; slide back overlap% reusing previous sentences
                 deduct = 0
                 while True:
-                    deduct = deduct + sentences[idx][1] # start reusing current idx
+                    deduct += sentences[idx][1] # start reusing current idx
                     if deduct >= overlap_size:
                         break
                     idx = idx - 1
@@ -130,7 +130,7 @@ def split(input: str, chunk_size: int, overlap=0.25, alphabet=True) -> list[str]
                 total = 0
                 sentence = ""
             else:
-                idx = idx + 1
+                idx += 1
 
         # sentence outputting happens when chunk_size is reached (handled above) OR
         # looping through all sentences has completed and chunk_size is not yet reached
