@@ -1,0 +1,49 @@
+Python is a multi-paradigm programming language. Object-oriented programming and 
+structured programming are fully supported, and many of their features support 
+functional programming and aspect-oriented programming (including metaprogramming
+and metaobjects). Many other paradigms are supported via extensions, including design 
+by contract and logic programming.
+
+Python uses dynamic typing and a combination of reference counting and a cycle-detecting 
+garbage collector for memory management. It uses dynamic name resolution (late binding), 
+which binds method and variable names during program execution.
+
+Its design offers some support for functional programming in the Lisp tradition. 
+It has filter, mapandreduce functions; list comprehensions, dictionaries, sets, and 
+generator expressions. The standard library has two modules (itertools and functools) 
+that implement functional tools borrowed from Haskell and Standard ML.
+Python is a high-level general-purpose programming language that can be applied to many different classes of problems.
+
+The language comes with a large standard library that covers areas such as string processing 
+(regular expressions, Unicode, calculating differences between files), internet protocols 
+(HTTP, FTP, SMTP, XML-RPC, POP, IMAP), software engineering (unit testing, logging, profiling, parsing Python code), 
+and operating system interfaces (system calls, filesystems, TCP/IP sockets). Look at the table of contents for 
+The Python Standard Library to get an idea of what’s available. A wide variety of third-party extensions are 
+also available. Consult the Python Package Index to find packages of interest to you.
+
+How does the Python version numbering scheme work?
+Python versions are numbered “A.B.C” or “A.B”:
+A is the major version number – it is only incremented for really major changes in the language.
+B is the minor version number – it is incremented for less earth-shattering changes.
+C is the micro version number – it is incremented for each bugfix release.
+Not all releases are bugfix releases. In the run-up to a new feature release, a series of 
+development releases are made, denoted as alpha, beta, or release candidate. Alphas are early releases in 
+which interfaces aren’t yet finalized; it’s not unexpected to see an interface change between two alpha releases. 
+Betas are more stable, preserving existing interfaces but possibly adding new modules, and release candidates are 
+frozen, making no changes except as needed to fix critical bugs.
+
+Alpha, beta and release candidate versions have an additional suffix:
+The suffix for an alpha version is “aN” for some small number N.
+The suffix for a beta version is “bN” for some small number N.
+The suffix for a release candidate version is “rcN” for some small number N.
+In other words, all versions labeled 2.0aN precede the versions labeled 2.0bN, which precede versions 
+labeled 2.0rcN, and those precede 2.0.
+
+You may also find version numbers with a “+” suffix, e.g. “2.2+”. These are unreleased versions, 
+built directly from the CPython development repository. In practice, after a final minor release is made, the 
+version is incremented to the next minor version, which becomes the “a0” version, e.g. “2.4a0”.
+See the Developer’s Guide for more information about the development cycle, and PEP 387 to learn more about 
+Python’s backward compatibility policy. See also the documentation for sys.version, sys.hexversion, and sys.version_info.
+
+
+

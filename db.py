@@ -41,16 +41,16 @@ async def create(collection: str, input: str, src: str, chunk: int, alphabet=Tru
         documents = chunker.split(input, chunk, alphabet=alphabet)
 
     count = len(documents)
-    ids = []
-    metadata = []
 
-    for _ in range(count):
-        ids.append(uuid.uuid4().hex)
-        metadata.append({ "source": src })
+    class MetaData:
+        def __iter__(self):
+            return self
+        def __next__(self):
+            return { "source": src }
 
     async with _DBClient() as client:
         # does repeated batch embed + upload of 32 docs per batch
-        res = await client.add(collection, documents, metadata=metadata, ids=ids)
+        res = await client.add(collection, documents, metadata=MetaData())
 
     # indexing payload.source may be necessary..
     # https://qdrant.tech/documentation/concepts/indexing/

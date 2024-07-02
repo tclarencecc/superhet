@@ -3,25 +3,26 @@ import config
 from config import ConfigKey
 config.set(ConfigKey.BENCHMARK, True)
 
-from unittest import IsolatedAsyncioTestCase
+from unittest import IsolatedAsyncioTestCase, skip
 import db
 import llm
 import asyncio
 
 class TestIntegration(IsolatedAsyncioTestCase):
+    #@skip
     async def test_crud_flow(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
 
         collection = "_test_"
         src="ffx"
-        query = "where can wakka be found in the beginning?"
+        query = "how does python manage memory?"
 
         print("\n\ninit..")
         await db.drop(collection) # drop just in case prev test did not cleanup properly
 
         print("\ncreating..")
-        c_res = await db.create(collection, "./test/test.txt", src, 500)
+        c_res = await db.create(collection, "./test/t1.txt", src, 500)
         self.assertTrue(c_res[0])
 
         async def read() -> str:
