@@ -1,7 +1,4 @@
 import unittest
-import sys
-sys.path.append("..")
-
 import chunker
 
 TEST_TXT_1 = """ZANARKAND STADIUM
