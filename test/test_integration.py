@@ -3,35 +3,42 @@ import config
 from config import ConfigKey
 config.set(ConfigKey.BENCHMARK, True)
 
-import unittest
+from unittest import IsolatedAsyncioTestCase
 import db
 import llm
+import asyncio
 
-class TestIntegration(unittest.TestCase):
-    def test_crud_flow(self):
+class TestIntegration(IsolatedAsyncioTestCase):
+    async def test_crud_flow(self):
+        # disable 'Executing Task...took # seconds' warning
+        asyncio.get_event_loop().set_debug(False)
+
         collection = "_test_"
         src="ffx"
         query = "where can wakka be found in the beginning?"
 
         print("\n\ninit..")
-        db.drop(collection) # drop just in case prev test did not cleanup properly
+        await db.drop(collection) # drop just in case prev test did not cleanup properly
 
         print("\ncreating..")
-        c_res = db.create(collection, "./test/test.txt", src, 500)
+        c_res = await db.create(collection, "./test/test.txt", src, 500)
         self.assertTrue(c_res[0])
 
+        async def read() -> str:
+            ctx = await db.read(collection, query)
+            ans = await llm.inference(ctx, query)
+            print("\033[34m" + ans + "\033[0m")
+            return ans
+
         print("\nreading..")
-        ctx = db.read(collection, query)
-        print("\033[34m" + llm.inference(ctx, query) + "\033[0m")
+        await read()
 
         print("\ndeleting..")
-        self.assertTrue(db.delete(collection, src))
+        self.assertTrue(await db.delete(collection, src))
 
         print("\nread non-existing..")
-        ctx = db.read(collection, query)
-        ans = llm.inference(ctx, query)
-        print("\033[34m" + ans + "\033[0m")
-        self.assertTrue(ans == "Unable to answer as no data can be found in the record.")
+        nonex = await read()
+        self.assertTrue(nonex == "Unable to answer as no data can be found in the record.")
 
         print("\ndropping..")
-        self.assertTrue(db.drop(collection))
+        self.assertTrue(await db.drop(collection))

@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 import uuid
 import chunker
@@ -12,17 +12,17 @@ os.environ["FASTEMBED_CACHE_PATH"] = config.get(ConfigKey.FASTEMBED_CACHE)
 
 class _DBClient(object):
     def __init__(self):
-        self.client: QdrantClient = None
+        self.client: AsyncQdrantClient = None
 
-    def __enter__(self) -> QdrantClient:
-        self.client = QdrantClient(config.get(ConfigKey.DB_HOST))
+    async def __aenter__(self) -> AsyncQdrantClient:
+        self.client = AsyncQdrantClient(config.get(ConfigKey.DB_HOST))
         return self.client
     
-    def __exit__(self, type, value, traceback):
-        self.client.close()
+    async def __aexit__(self, type, value, traceback):
+        await self.client.close()
 
 @benchmark("db create")
-def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> tuple[bool, int]:
+async def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> tuple[bool, int]:
     documents = list[str]
 
     if input.startswith("./"):
@@ -48,9 +48,9 @@ def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> 
         ids.append(uuid.uuid4().hex)
         metadata.append({ "source": src })
 
-    with _DBClient() as client:
+    async with _DBClient() as client:
         # does repeated batch embed + upload of 32 docs per batch
-        res = client.add(collection, documents, metadata=metadata, ids=ids)
+        res = await client.add(collection, documents, metadata=metadata, ids=ids)
 
     # indexing payload.source may be necessary..
     # https://qdrant.tech/documentation/concepts/indexing/
@@ -58,12 +58,12 @@ def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> 
     return (len(res) == count, count)
 
 @benchmark("db read")
-def read(collection: str, query: str, limit=1) -> str:
+async def read(collection: str, query: str, limit=1) -> str:
     if query == "":
         raise Exception("Database.read undefined query.")
 
-    with _DBClient() as client:
-        hits = client.query(collection, query, limit=limit)
+    async with _DBClient() as client:
+        hits = await client.query(collection, query, limit=limit)
 
     ret = ""
     for hit in hits:
@@ -75,9 +75,9 @@ def read(collection: str, query: str, limit=1) -> str:
     return ret
     
 @benchmark("db delete")
-def delete(collection: str, src: str) -> bool:
-    with _DBClient() as client:
-        res = client.delete(collection, points_selector=Filter(
+async def delete(collection: str, src: str) -> bool:
+    async with _DBClient() as client:
+        res = await client.delete(collection, points_selector=Filter(
             must=[FieldCondition(
                 key="source",
                 match=MatchValue(value=src)
@@ -86,6 +86,6 @@ def delete(collection: str, src: str) -> bool:
         return res.status.value == "completed"
 
 @benchmark("db drop")
-def drop(collection: str) -> bool:
-    with _DBClient() as client:
-        return client.delete_collection(collection)
+async def drop(collection: str) -> bool:
+    async with _DBClient() as client:
+        return await client.delete_collection(collection)

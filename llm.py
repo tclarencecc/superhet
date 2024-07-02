@@ -1,4 +1,4 @@
-import requests
+from aiohttp import ClientSession
 import config
 from config import ConfigKey
 from util import benchmark
@@ -6,7 +6,7 @@ from util import benchmark
 _host = config.get(ConfigKey.LLM_HOST)
 
 @benchmark("llm inference")
-def inference(ctx: str, query: str) -> str:
+async def inference(ctx: str, query: str) -> str:
     if ctx == "":
         return "Unable to answer as no data can be found in the record."
 
@@ -21,10 +21,10 @@ Context: {ctx}
 <|im_start|>assistant
 """.format(ctx=ctx, query=query)
     
-    res = requests.post(_host + "/completion",
-        json={ "prompt": prompt }
-    )
-    if res.status_code != 200:
-        raise Exception("llm returned error status: " + str(res.status_code))
-
-    return res.json()["content"]
+    async with ClientSession() as session:
+        async with session.post(_host + "/completion", json={ "prompt": prompt }) as res:
+            if res.status != 200:
+                raise Exception("llm returned error status: " + str(res.status))
+            
+            json = await res.json()
+            return json["content"]
