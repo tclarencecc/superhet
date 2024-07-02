@@ -16,7 +16,7 @@ def get(k: ConfigKey) -> any:
     
     return _config[k.name]
 
-def set(k: ConfigKey, v: any=None) -> None:
+def set(k: ConfigKey, v: any=None):
     if v is not None:
         _config[k.name] = v
     else:
