@@ -3,13 +3,14 @@ import config
 from config import ConfigKey
 config.set(ConfigKey.BENCHMARK, True)
 
-from unittest import IsolatedAsyncioTestCase, skip
+from unittest import IsolatedAsyncioTestCase, skipIf
 import db
 import llm
 import asyncio
+import config_test
 
 class TestIntegration(IsolatedAsyncioTestCase):
-    #@skip
+    @skipIf(config_test.SKIP_INT_CRUD_FLOW, "")
     async def test_crud_flow(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)

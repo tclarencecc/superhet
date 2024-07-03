@@ -1,8 +1,10 @@
-import unittest
+from unittest import TestCase, skipIf
 import chunker
 from chunker import Chunker
+import config_test
 
-class TestChunker(unittest.TestCase):
+class TestChunker(TestCase):
+    @skipIf(config_test.SKIP_CHUNKER, "")
     def test_sliding_window(self):
         # de-indented
         s1 = """ZANARKAND STADIUM
@@ -22,6 +24,7 @@ just attack. After that there will be a boss."""
         ret = chunker.split(s1, 100)
         self.assertEqual(ret[-1], s2)
 
+    @skipIf(config_test.SKIP_CHUNKER, "")
     def test_chunker_read(self):
         c = []
         for chunk in Chunker("./test/t1.txt"):
