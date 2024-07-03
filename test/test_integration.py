@@ -6,6 +6,7 @@ config.set(ConfigKey.BENCHMARK, True)
 from unittest import IsolatedAsyncioTestCase, skipIf
 import db
 import llm
+from chunker import Chunker
 import asyncio
 import config_test
 
@@ -23,8 +24,9 @@ class TestIntegration(IsolatedAsyncioTestCase):
         await db.drop(collection) # drop just in case prev test did not cleanup properly
 
         print("\ncreating..")
-        c_res = await db.create(collection, "./test/t1.txt", src, 500)
-        self.assertTrue(c_res[0])
+        chunker = Chunker("./test/t1.txt", { "chunk_size": 500 })
+        c_res = await db.create(collection, chunker, src)
+        self.assertTrue(c_res > 0)
 
         async def read() -> str:
             ctx = await db.read(collection, query)

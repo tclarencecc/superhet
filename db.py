@@ -1,6 +1,6 @@
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
-import uuid
+from typing import Iterable
 import chunker
 import config
 from config import ConfigKey
@@ -22,26 +22,7 @@ class _DBClient(object):
         await self.client.close()
 
 @benchmark("db create")
-async def create(collection: str, input: str, src: str, chunk: int, alphabet=True) -> tuple[bool, int]:
-    documents = list[str]
-
-    if input.startswith("./"):
-        try:
-            f = open(input)
-        except FileNotFoundError:
-            print(input + " not found.")
-        else:
-            documents = chunker._sliding_window(f.read(), chunk, alphabet=alphabet)
-        finally:
-            f.close()
-    elif input.startswith("<!DOCTYPE html>"):
-        # TODO
-        pass
-    else:
-        documents = chunker._sliding_window(input, chunk, alphabet=alphabet)
-
-    count = len(documents)
-
+async def create(collection: str, documents: Iterable[str], src: str) -> int:
     class MetaData:
         def __iter__(self):
             return self
@@ -55,7 +36,7 @@ async def create(collection: str, input: str, src: str, chunk: int, alphabet=Tru
     # indexing payload.source may be necessary..
     # https://qdrant.tech/documentation/concepts/indexing/
 
-    return (len(res) == count, count)
+    return len(res)
 
 @benchmark("db read")
 async def read(collection: str, query: str, limit=1) -> str:
