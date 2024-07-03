@@ -40,7 +40,7 @@ async def create(collection: str, documents: Iterable[str], src: str) -> int:
 @benchmark("db read")
 async def read(collection: str, query: str, limit=1) -> str:
     if query == "":
-        raise Exception("Database.read undefined query.")
+        raise ValueError("db.read undefined query.")
 
     async with _DBClient() as client:
         hits = await client.query(collection, query, limit=limit)

@@ -19,11 +19,11 @@ class Chunker:
         if input.startswith("./"):
             self._iterable: Iterable[str] = FileStream(input, separator=separator)
         elif input.startswith("<!DOCTYPE html>"):
-            # TODO
-            pass
+            # TODO should be handling http stream here
+            raise NotImplementedError
         else:
-            # TODO
-            pass
+            # document as string is not allowed
+            raise ValueError("Chunker only accepts file path or http stream inputs.")
 
     def __iter__(self):
         return self
@@ -85,9 +85,9 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
 
 def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool) -> list[str]:
     if overlap < 0.1 or overlap > 0.5:
-        raise Exception("chunker.split overlap must be 0.1 to 0.5.")
+        raise ValueError("chunker._sliding_window overlap must be 0.1 to 0.5.")
     if chunk_size < 100:
-        raise Exception("chunker.split chunk_size should be at least 100.")
+        raise ValueError("chunker._sliding_window chunk_size should be at least 100.")
 
     ret = []
     overlap_size = chunk_size * overlap

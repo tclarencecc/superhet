@@ -1,7 +1,7 @@
 from aiohttp import ClientSession
 import config
 from config import ConfigKey
-from util import benchmark
+from util import benchmark, HttpError
 
 _host = config.get(ConfigKey.LLM_HOST)
 
@@ -24,7 +24,7 @@ Context: {ctx}
     async with ClientSession() as session:
         async with session.post(_host + "/completion", json={ "prompt": prompt }) as res:
             if res.status != 200:
-                raise Exception("llm returned error status: " + str(res.status))
+                raise HttpError("llm.inference returned error status: " + str(res.status))
             
             json = await res.json()
             return json["content"]

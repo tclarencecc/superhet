@@ -37,3 +37,5 @@ def benchmark(name: str):
 
         return wrapper
     return decorate
+
+class HttpError(Exception): ...

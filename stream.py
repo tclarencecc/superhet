@@ -3,7 +3,7 @@ from io import StringIO
 class FileStream:
     def __init__(self, file: str, separator="\n\n"):
         if separator == "":
-            raise Exception("Chunker separator is required.")
+            raise ValueError("FileStream separator is required.")
         
         self._reader = open(file) # let errors go through
         self._separator = separator
