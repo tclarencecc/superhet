@@ -1,5 +1,5 @@
 from unittest import TestCase, skipIf
-import chunker
+from chunker import Chunker, _sliding_window
 from stream import FileStream
 import config_test
 
@@ -21,11 +21,11 @@ just attack. After that there will be a boss."""
 short talk about Sin, you'll have to fight some sinscales. These are easy,
 just attack. After that there will be a boss."""
 
-        ret = chunker.split(s1, 100)
+        ret = _sliding_window(s1, 100)
         self.assertEqual(ret[-1], s2)
 
     @skipIf(config_test.SKIP_CHUNKER, "")
-    def test_chunker_stream_file(self):
+    def test_stream_file(self):
         c = []
         for chunk in FileStream("./test/t1.txt"):
             c.append(chunk)
@@ -49,3 +49,17 @@ which binds method and variable names during program execution."""
         self.assertEqual(c[4], "jkl\n\nmno")
         self.assertEqual(c[5], "")
         self.assertEqual(c[6], "stu\n< b r >")
+
+    @skipIf(config_test.SKIP_CHUNKER, "")
+    def test_stream_chunk(self):
+        c = []
+        for sentence in Chunker("./test/t3.txt", {}):
+            c.append(sentence)
+
+        s1 = """With Tidus,
+open the Trigger Command menu again then choose Pincer Attack. They will now
+attack Tros from both sides, and this time he can't escape so just pummel him
+until he dies."""
+
+        self.assertEqual(len(c), 20)
+        self.assertEqual(c[14], s1)

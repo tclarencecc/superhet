@@ -31,14 +31,14 @@ async def create(collection: str, input: str, src: str, chunk: int, alphabet=Tru
         except FileNotFoundError:
             print(input + " not found.")
         else:
-            documents = chunker.split(f.read(), chunk, alphabet=alphabet)
+            documents = chunker._sliding_window(f.read(), chunk, alphabet=alphabet)
         finally:
             f.close()
     elif input.startswith("<!DOCTYPE html>"):
         # TODO
         pass
     else:
-        documents = chunker.split(input, chunk, alphabet=alphabet)
+        documents = chunker._sliding_window(input, chunk, alphabet=alphabet)
 
     count = len(documents)
 

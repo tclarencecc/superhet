@@ -1,0 +1,135 @@
+ZANARKAND STADIUM
+After the FMV, you'll be controlling Tidus. Just go south and talk to the
+2 girls or the 3 children. You can rename him if you want. Afterwards the
+game will begin and Tidus will leave. When you regain control, just keep
+going east. On the next screen head north into the building. You'll watch
+the blitzball game, then Sin will attack Zanarkand. When you regain control,
+head south towards the screen and you'll meet up with Auron. After their
+short talk about Sin, you'll have to fight some sinscales. These are easy,
+just attack. After that there will be a boss.
+
+BOSS: SINSPAWN AMMES
+HP:    2400
+AP:    0
+Gil:   0
+Items: none
+Equip: none
+Steal: N/A
+This one is very easy. First, you'll be taught about how to use overdrives.
+Auron's Dragon Fang will get rid of all the sinscales. As for the Ammes,
+just attack it and unleash your Overdrive when available. It can't kill
+you even at 1 HP so don't worry.
+There will be a save sphere here, so save your game if you want. You'll
+fight those sinscales again. Just keep attacking them until Auron tells
+you to destroy the machine on the right. After a few scenes you'll see
+an FMV of Tidus being absorbed into Sin with Auron.
+
+RUINS
+Treasures: Hi-Potion x2, Ether, Potion x2, 200 Gil
+Key Items: Withered Bouquet, Flint
+Head to the circular platform with a boy on it. Hold X to dive. You'll be in
+the ruins. Head west for a chest with 2 Potions. Go back into the water then
+head east for a chest with 200 Gil. Head back into the water again, this
+time go north. There's a save sphere here, take the west path to the end for
+a chest with a Hi-Potion. Go back, then head north. You'll fight a group
+of Sahagins. Kill two of them and a big fish will come.
+
+BOSS: GEOSGAENO
+HP:    ?
+AP:    0
+Gil:   0
+Items: none
+Equip: none
+Steal: N/A
+This is another easy one. Just attack it, for about three to four times and
+heal when you need to.
+
+After some scenes, go north and up the stairs. You'll be at the main hall
+and you'll need fire. Now, head north into the room, then inside head a
+little bit south for a chest with an Ether. Still in the same room, head
+north and up the stairs to get the Withered Bouquet, keep going until the
+end of the path for a chest with a Hi-Potion. Head back to the main hall,
+then into the room southwest. There will be a save sphere here, you can save
+your game here if you want before going in. In the room, take the Flint.
+Head back out to the main hall and examine the wood at the center.
+There will be some more scenes, then Tidus will be attacked.
+
+BOSS: KLIKK
+HP:    1500+
+AP:    5
+Gil:   100
+Items: Ability Sphere x2
+Equip: none
+Steal: Grenades x3
+This is another easy one. Have Rikku use her grenades to deal about 300+
+damage every turn. If you happen to run out of grenades, just steal. Have
+Tidus attack it or use Potions if necessary. You'll win eventually.
+You'll be taken to their ship afterwards.
+
+SALVAGE SHIP
+Treasures: Potion x3
+Key Item: Al Bhed Primer Vol. 1
+The people here will be speaking the Al Bhed language. Tidus will be asked to
+work. When you regain control, save your game. Then head to the right side of
+the upper deck to get the Al Bhed Primer Vol. 1. Then talk to one of the guys
+and he'll give you 3 Potions. Talk to Rikku and you'll learn how to use
+the sphere grid. Talk to Rikku again. You'll be swimming now, dive and
+move towards the red indicator at the end. Keep going until after the next
+screen.
+
+UNDERWATER RUINS
+There will be a save sphere behind you, save if you want. Examine the blue
+panel up ahead. This will open a new path. Go in. You'll be fighting a
+group of Piranhas here, I suggest that you steal some grenades from them,
+you'll need it later. After the battle, examine the machine at the center.
+Then head back out. You'll have to fight another boss.
+
+BOSS: TROS
+HP:    2,100+
+AP:    5
+Gil:   100
+Items: none
+Equip: none
+Steal: Grenades x2
+This is also quite easy. He'll be hiding behind the pillar, thus Tidus won't
+be able attack him. So, have Tidus cast Cheer or on Standby using the
+Trigger Command. As for the Rikku use her grenades, you'll be able to hit him
+even from that distance. Tros will attack you and hide again. With Tidus,
+open the Trigger Command menu again then choose Pincer Attack. They will now
+attack Tros from both sides, and this time he can't escape so just pummel him
+until he dies.
+
+After the battle follow Rikku towards the exit. You'll be back on the ship.
+There will be another scene with Tidus talking to Rikku about Zanarkand
+and other things. Sin will come and attack the ship. You'll be asked if you
+wish to save your game afterwards.
+
+BESAID
+Treasures: Potion x5, Hi-Potion x2, Pheonix Down x5, Antidote x4, 600 Gil,
+           Ether, Seeker's Ring, Remedy
+Key Items: Moon Crest, Al Bhed Primer Vol. 2
+You'll have to watch some scenes again. When you regain control, head
+ashore then go west for a chest with 2 Antidotes. Go back into the water,
+this time head east for a chest with a Moon Crest. Head to where the
+Besaid Aurochs are. then you'll see more scenes. When you regain control,
+talk to the Blitball players several times and you'll receive some items.
+Just follow Wakka to the valley, and he'll push Tidus off the cliff and
+into the water. In the water you should notice a chest, dive to get a
+Pheonix Down. Head towards the red indicator at the end, dive along the
+way for a chest with a Hi-Potion. There will be another chest farther
+ahead with 2 Antidotes.
+After a short talk between Wakka and Tidus, you'll be at Besaid Village.
+Here, you'll have to look around. Proceed to the shop(the first house
+to your left) there will be a chest with a Pheonix Down. Head for the
+Crusader's Lodge. Get the Al Bhed Primer Vol. 2 by the entrance.
+With that done, head for the temple up ahead.
+You'll see another scene here, about Braska. After that, head back out
+and find Wakka. After the scene, go all the way back to the temple.
+Some more scenes will take place and you'll end up in the Cloister
+of Trials.
+
+
+
+
+
+
