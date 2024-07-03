@@ -1,6 +1,6 @@
 from unittest import TestCase, skipIf
 import chunker
-from chunker import Chunker
+from stream import FileStream
 import config_test
 
 class TestChunker(TestCase):
@@ -25,9 +25,9 @@ just attack. After that there will be a boss."""
         self.assertEqual(ret[-1], s2)
 
     @skipIf(config_test.SKIP_CHUNKER, "")
-    def test_chunker_read(self):
+    def test_chunker_stream_file(self):
         c = []
-        for chunk in Chunker("./test/t1.txt"):
+        for chunk in FileStream("./test/t1.txt"):
             c.append(chunk)
 
         s1 = """Python uses dynamic typing and a combination of reference counting and a cycle-detecting 
@@ -38,7 +38,7 @@ which binds method and variable names during program execution."""
         self.assertEqual(c[1], s1)
 
         c.clear()
-        for chunk in Chunker("./test/t2.txt", separator="<br>"):
+        for chunk in FileStream("./test/t2.txt", separator="<br>"):
             c.append(chunk)
 
         self.assertEqual(len(c), 7)
