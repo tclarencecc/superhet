@@ -24,7 +24,10 @@ class TestIntegration(IsolatedAsyncioTestCase):
         await db.drop(collection) # drop just in case prev test did not cleanup properly
 
         print("\ncreating..")
-        chunker = Chunker("./test/t1.txt", { "chunk_size": 500 })
+        chunker = Chunker("./test/t1.txt", {
+            "size": 250,
+            "overlap": 0.15
+        })
         c_res = await db.create(collection, chunker, src)
         self.assertTrue(c_res > 0)
 

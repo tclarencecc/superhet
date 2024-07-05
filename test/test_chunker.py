@@ -58,7 +58,10 @@ which binds method and variable names during program execution."""
     def test_stream_chunk(self):
         # test filestream -> sliding_window -> chunker pipeline
         c = []
-        for sentence in Chunker("./test/t3.txt", {}):
+        for sentence in Chunker("./test/t3.txt", {
+                "size": 100,
+                "overlap": 0.25
+            }):
             c.append(sentence)
 
         s1 = """With Tidus,
@@ -71,7 +74,10 @@ until he dies."""
 
         # test handling of 'x.x' words
         c.clear()
-        for sentence in Chunker("./test/t1.txt", {}):
+        for sentence in Chunker("./test/t1.txt", {
+                "size": 100,
+                "overlap": 0.25
+            }):
             c.append(sentence)
 
         s2 = """You may also find version numbers with a “+” suffix, e.g. “2.2+”. These are unreleased versions, 

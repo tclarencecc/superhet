@@ -7,7 +7,7 @@ from util import benchmark
 import os
 
 # qdrant fastembed reads from this env-var for embedding model path
-os.environ["FASTEMBED_CACHE_PATH"] = config.get(ConfigKey.FASTEMBED_CACHE)
+os.environ["FASTEMBED_CACHE_PATH"] = config.get(ConfigKey.FASTEMBED)["path"]
 
 class _DBClient(object):
     def __init__(self):

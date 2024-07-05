@@ -2,10 +2,18 @@ from typing import Dict
 from enum import Enum
 
 class ConfigKey(Enum):
-    FASTEMBED_CACHE = "./fastembed"
+    FASTEMBED = {
+        "name": "bge-small-en-v1.5",
+        "path": "./fastembed",
+        "token": 512
+    }
     DB_HOST = "http://localhost:6333"
     LLM_HOST = "http://127.0.0.1:8080"
     BENCHMARK = False
+    CHUNK = {
+        "minimum": 20, # a sentence basically. max is computed from FASTEMBED.token
+        "overlap": [0.1, 0.25]
+    }
     # add more as needed...
 
 _config: Dict[str, any] = {}
