@@ -26,7 +26,7 @@ just attack. After that there will be a boss."""
 
 # -----------------------------------------------------------------------------
     @skipIf(config_test.SKIP_CHUNKER, "")
-    def test_stream_file(self):
+    def test_file_stream(self):
         # test \n\n separator
         c = []
         for chunk in FileStream("./test/t1.txt"):
@@ -55,7 +55,7 @@ which binds method and variable names during program execution."""
 
 # -----------------------------------------------------------------------------
     @skipIf(config_test.SKIP_CHUNKER, "")
-    def test_stream_chunk(self):
+    def test_chunker(self):
         # test filestream -> sliding_window -> chunker pipeline
         c = []
         for sentence in Chunker("./test/t3.txt", {

@@ -1,3 +1,3 @@
 
 SKIP_CHUNKER = False
-SKIP_INT_CRUD_FLOW = False
+SKIP_INT_CRUD = False

@@ -11,8 +11,8 @@ import asyncio
 import config_test
 
 class TestIntegration(IsolatedAsyncioTestCase):
-    @skipIf(config_test.SKIP_INT_CRUD_FLOW, "")
-    async def test_crud_flow(self):
+    @skipIf(config_test.SKIP_INT_CRUD, "")
+    async def test_crud(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
 
