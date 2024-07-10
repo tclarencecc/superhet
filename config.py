@@ -4,7 +4,7 @@ from enum import Enum
 class ConfigKey(Enum):
     FASTEMBED = {
         "name": "bge-small-en-v1.5",
-        "path": "./fastembed",
+        "path": "./bin",
         "token": 512
     }
     DB_HOST = "http://localhost:6333"
