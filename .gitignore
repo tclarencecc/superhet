@@ -53,3 +53,7 @@ venv.bak/
 
 # contents will be re-downloaded if not present
 fastembed/
+
+# prebuilt executables (& their dependencies)
+bin/*
+!bin/config.yaml

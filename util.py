@@ -1,6 +1,9 @@
 import time
 import functools
 import inspect
+import subprocess
+import shlex
+import signal
 import config
 from config import ConfigKey
 
@@ -39,3 +42,32 @@ def benchmark(name: str):
     return decorate
 
 class HttpError(Exception): ...
+
+def extprocess(args: list[tuple[str, str]]):
+    """
+    args: list of tuple (cwd: str, cmd: str)
+    """
+    def decorate(fn):
+        @functools.wraps(fn)
+        def wrapper():
+            procs = []
+            try:
+                for arg in args:
+                    procs.append(subprocess.Popen(
+                        shlex.split(arg[1]),
+                        cwd=arg[0]
+                    ))
+                fn()
+            except KeyboardInterrupt:
+                # SIGINT propagates to child processes, do nothing
+                pass
+            except Exception as e:
+                # exceptions raised from long-running loop will be catched here
+                for proc in procs:
+                    proc.send_signal(signal.SIGINT)
+                raise e
+            finally:
+                pass
+
+        return wrapper
+    return decorate

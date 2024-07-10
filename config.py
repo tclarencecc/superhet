@@ -14,6 +14,11 @@ class ConfigKey(Enum):
         "minimum": 20, # a sentence basically. max is computed from FASTEMBED.token
         "overlap": [0.1, 0.25]
     }
+    LLAMA_PATH = "./bin"
+    LLAMA_SHELL_CMD = "./llama-server -m ./qwen2-1_5b-instruct-q8_0.gguf -fa -n 256"
+    QDRANT_PATH = "./bin"
+    QDRANT_SHELL_CMD = "./qdrant --config-path ./config.yaml"
+
     # add more as needed...
 
 _config: Dict[str, any] = {}

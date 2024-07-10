@@ -4,17 +4,45 @@ from config import ConfigKey
 config.set(ConfigKey.BENCHMARK, True)
 
 from unittest import IsolatedAsyncioTestCase, skipIf
+import subprocess
+import shlex
+import signal
 import db
 import llm
 from chunker import Chunker
 import asyncio
 import config_test
 
+_proc_db = None
+_proc_llm = None
+
 class TestIntegration(IsolatedAsyncioTestCase):
+    @classmethod
+    def setUpClass(cls):
+        global _proc_db
+        global _proc_llm
+
+        _proc_db = subprocess.Popen(
+            shlex.split(config.get(ConfigKey.QDRANT_SHELL_CMD)),
+            cwd=config.get(ConfigKey.QDRANT_PATH)
+        )
+        _proc_llm = subprocess.Popen(
+            shlex.split(config.get(ConfigKey.LLAMA_SHELL_CMD)),
+            cwd=config.get(ConfigKey.LLAMA_PATH)
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        _proc_db.send_signal(signal.SIGINT)
+        _proc_llm.send_signal(signal.SIGINT)
+
     @skipIf(config_test.SKIP_INT_CRUD, "")
     async def test_crud(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
+
+        # sleep to let db & llm complete init
+        await asyncio.sleep(4)
 
         collection = "_test_"
         src="ffx"

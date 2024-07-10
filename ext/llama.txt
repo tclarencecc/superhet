@@ -1,1 +1,0 @@
-./llama-server -m ./qwen2-1_5b-instruct-q8_0.gguf -fa -n 256 -v
