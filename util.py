@@ -44,13 +44,15 @@ class HttpError(Exception): ...
 
 def extprocess(args: list[tuple[str, str]]):
     """
-    args: list of tuple (cwd: str, cmd: str, env: dict)
+    args: list of tuple (cwd: str, cmd: str, env: dict)\n
     env is optional
     """
     def decorate(fn):
         @functools.wraps(fn)
         def wrapper():
             procs = []
+            sigint = False
+
             try:
                 for arg in args:
                     env = None
@@ -65,15 +67,13 @@ def extprocess(args: list[tuple[str, str]]):
                     ))
                 fn()
             except KeyboardInterrupt:
-                # SIGINT propagates to child processes, do nothing
+                # SIGINT propagates to child processes
+                sigint = True
                 pass
-            except Exception as e:
-                # exceptions raised from long-running loop will be catched here
-                for proc in procs:
-                    proc.send_signal(signal.SIGINT)
-                raise e
             finally:
-                pass
+                if sigint == False:
+                    for proc in procs:
+                        proc.send_signal(signal.SIGINT)
 
         return wrapper
     return decorate
