@@ -1,8 +1,3 @@
-# set before import of modules that uses config
-import config
-from config import ConfigKey
-config.set(ConfigKey.BENCHMARK, True)
-
 from unittest import IsolatedAsyncioTestCase, skipIf
 import subprocess
 import shlex
@@ -12,6 +7,7 @@ import llm
 from chunker import Chunker
 import asyncio
 import config_test
+from config import Config
 
 _proc_db = None
 _proc_llm = None
@@ -23,18 +19,21 @@ class TestIntegration(IsolatedAsyncioTestCase):
         global _proc_llm
 
         _proc_db = subprocess.Popen(
-            shlex.split(config.get(ConfigKey.QDRANT_SHELL_CMD)),
-            cwd=config.get(ConfigKey.QDRANT_PATH)
+            shlex.split(Config.QDRANT.SHELL),
+            cwd=Config.QDRANT.PATH,
+            env=Config.QDRANT.ENV
         )
         _proc_llm = subprocess.Popen(
-            shlex.split(config.get(ConfigKey.LLAMA_SHELL_CMD)),
-            cwd=config.get(ConfigKey.LLAMA_PATH)
+            shlex.split(Config.LLAMA.SHELL),
+            cwd=Config.LLAMA.PATH
         )
 
     @classmethod
     def tearDownClass(cls):
         _proc_db.send_signal(signal.SIGINT)
         _proc_llm.send_signal(signal.SIGINT)
+        _proc_db.wait()
+        _proc_llm.wait()
 
     @skipIf(config_test.SKIP_INT_CRUD, "")
     async def test_crud(self):
@@ -61,7 +60,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
 
         async def read() -> str:
             ctx = await db.read(collection, query)
-            ans = await llm.inference(ctx, query)
+            ans = await llm.completion(ctx, query)
             print("\033[34m" + ans + "\033[0m")
             return ans
 

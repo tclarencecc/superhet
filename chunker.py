@@ -1,7 +1,6 @@
 from typing import Iterable
 from stream import FileStream
-import config
-from config import ConfigKey
+from config import Config
 
 class Chunker:
     def __init__(self, input: str, params: dict[str, any]={}):
@@ -10,12 +9,9 @@ class Chunker:
                 return params[k]
             else:
                 return dv
-            
-        min_cs = config.get(ConfigKey.CHUNK)["minimum"]
-        min_ov = config.get(ConfigKey.CHUNK)["overlap"][0]
-
-        self._chunk_size = assign("size", min_cs)
-        self._chunk_overlap = assign("overlap", min_ov)
+                
+        self._chunk_size = assign("size", Config.CHUNK.SIZE.MIN)
+        self._chunk_overlap = assign("overlap", Config.CHUNK.OVERLAP.MIN)
         self._alphabet = assign("alphabet", True)
         separator = assign("separator", "\n\n")
 
@@ -86,21 +82,20 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
 # > up to 128K tokens with Qwen2-7B-Instruct and Qwen2-72B-Instruct
 
 def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool) -> list[str]:
-    over = config.get(ConfigKey.CHUNK)["overlap"]
-    if overlap < over[0] or overlap > over[1]:
+    if overlap < Config.CHUNK.OVERLAP.MIN or overlap > Config.CHUNK.OVERLAP.MAX:
         raise ValueError("chunker._sliding_window overlap should be between {min_ov} and {max_ov}.".format(
-            min_ov=over[0],
-            max_ov=over[1]
+            min_ov=Config.CHUNK.OVERLAP.MIN,
+            max_ov=Config.CHUNK.OVERLAP.MAX
         ))
     
-    min_cs = config.get(ConfigKey.CHUNK)["minimum"]
+    min_cs = Config.CHUNK.SIZE.MIN
     if alphabet:
         # assuming a generous 2 token-per-word
-        max_cs = int(config.get(ConfigKey.FASTEMBED)["token"] / 2)
+        max_cs = int(Config.FASTEMBED.TOKEN / 2)
     else:
         # multiple chars can be just 1 token; assume worst case 1 token-per-char with small allowance
-        max_cs = int(config.get(ConfigKey.FASTEMBED)["token"] * 0.8)
-
+        max_cs = int(Config.FASTEMBED.TOKEN * 0.8)
+        
     if chunk_size < min_cs or chunk_size > max_cs:
         raise ValueError("chunker._sliding_window chunk_size should be between {min_cs} and {max_cs}.".format(
             min_cs=min_cs,

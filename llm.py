@@ -1,12 +1,9 @@
 from aiohttp import ClientSession
-import config
-from config import ConfigKey
+from config import Config
 from util import benchmark, HttpError
 
-_host = config.get(ConfigKey.LLM_HOST)
-
-@benchmark("llm inference")
-async def inference(ctx: str, query: str) -> str:
+@benchmark("llm completion")
+async def completion(ctx: str, query: str) -> str:
     if ctx == "":
         return "Unable to answer as no data can be found in the record."
 
@@ -22,7 +19,10 @@ Context: {ctx}
 """.format(ctx=ctx, query=query)
     
     async with ClientSession() as session:
-        async with session.post(_host + "/completion", json={ "prompt": prompt }) as res:
+        async with session.post(Config.LLAMA.HOST + "/completion",
+            headers={ "Authorization": "Bearer " + Config.LLAMA.KEY },
+            json={ "prompt": prompt }
+        ) as res:
             if res.status != 200:
                 raise HttpError("llm.inference returned error status: " + str(res.status))
             

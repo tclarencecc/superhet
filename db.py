@@ -1,20 +1,19 @@
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from typing import Iterable
-import config
-from config import ConfigKey
+from config import Config
 from util import benchmark
 import os
 
 # qdrant fastembed reads from this env-var for embedding model path
-os.environ["FASTEMBED_CACHE_PATH"] = config.get(ConfigKey.FASTEMBED)["path"]
+os.environ["FASTEMBED_CACHE_PATH"] = Config.FASTEMBED.PATH
 
 class _DBClient(object):
     def __init__(self):
         self.client: AsyncQdrantClient = None
 
     async def __aenter__(self) -> AsyncQdrantClient:
-        self.client = AsyncQdrantClient(config.get(ConfigKey.DB_HOST))
+        self.client = AsyncQdrantClient(Config.QDRANT.HOST, api_key=Config.QDRANT.KEY)
         return self.client
     
     async def __aexit__(self, type, value, traceback):

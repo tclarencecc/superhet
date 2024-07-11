@@ -4,8 +4,7 @@ import inspect
 import subprocess
 import shlex
 import signal
-import config
-from config import ConfigKey
+from config import Config
 
 def _print_duration(name: str, t: float):
     t = time.time() - t
@@ -20,7 +19,7 @@ def _print_duration(name: str, t: float):
 # if decor-fn uses config, make sure config is set BEFORE import of said module!
 def benchmark(name: str):
     def decorate(fn):
-        if config.get(ConfigKey.BENCHMARK) == False:
+        if Config.BENCHMARK == False:
             return fn
         
         if inspect.iscoroutinefunction(fn):
@@ -45,7 +44,8 @@ class HttpError(Exception): ...
 
 def extprocess(args: list[tuple[str, str]]):
     """
-    args: list of tuple (cwd: str, cmd: str)
+    args: list of tuple (cwd: str, cmd: str, env: dict)
+    env is optional
     """
     def decorate(fn):
         @functools.wraps(fn)
@@ -53,9 +53,15 @@ def extprocess(args: list[tuple[str, str]]):
             procs = []
             try:
                 for arg in args:
+                    env = None
+                    if len(arg) == 3:
+                        # has env
+                        env = arg[2]
+
                     procs.append(subprocess.Popen(
                         shlex.split(arg[1]),
-                        cwd=arg[0]
+                        cwd=arg[0],
+                        env=env
                     ))
                 fn()
             except KeyboardInterrupt:
