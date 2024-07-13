@@ -4,6 +4,9 @@ import inspect
 import subprocess
 import shlex
 import signal
+import asyncio
+from enum import Enum
+from typing import Callable
 from config import Config
 
 def _print_duration(name: str, t: float):
@@ -77,3 +80,64 @@ def extprocess(args: list[tuple[str, str]]):
 
         return wrapper
     return decorate
+
+def new_async_task(coro, callback: Callable=None):
+    def _callback(task: asyncio.Task):
+        if callback is not None:
+            callback()
+
+        try:
+            # needed to avoid 'Task exception was never retrieved'
+            # either return None, exception or raise CancelledError, InvalidStateError
+            task.exception()
+        except Exception as e:
+            print(e)
+
+    task = asyncio.get_event_loop().create_task(coro)
+    task.add_done_callback(_callback)
+
+class EnumDict:
+    def __init__(self):
+        self._dict = {}
+
+    def get(self, k: Enum) -> any:
+        if self._dict.get(k.name) is None:
+            self.set(k)
+        
+        return self._dict[k.name]
+
+    def set(self, k: Enum, v: any=None):
+        if v is not None:
+            self._dict[k.name] = v
+        else:
+            if k.value is None:
+                raise ValueError("EnumDict enum member '{name}' has no preset value. Set a user-defined value first."
+                    .format(name=k.name))
+
+            self._dict[k.name] = k.value
+
+class PrintColor:
+    @staticmethod
+    def OK(input: str):
+        PrintColor._print("\033[92m", input)
+
+    @staticmethod
+    def WARN(input: str):
+        PrintColor._print("\033[93m", input)
+
+    @staticmethod
+    def ERROR(input: str):
+        PrintColor._print("\033[91m", input)
+
+    @staticmethod
+    def BLUE(input: str):
+        PrintColor._print("\033[94m", input)
+
+    @staticmethod
+    def CYAN(input: str):
+        PrintColor._print("\033[96m", input)
+
+    @staticmethod
+    def _print(color: str, input: str):
+        print(color + input + "\033[0m")
+        
