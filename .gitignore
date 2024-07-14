@@ -49,7 +49,6 @@ venv.bak/
 
 # others
 .DS_Store
-.vscode/
 
 # prebuilt executables (& their dependencies), runtime downloadable resources
 bin/*
