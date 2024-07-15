@@ -2,6 +2,7 @@ from unittest import IsolatedAsyncioTestCase, skipIf
 import subprocess
 import shlex
 import signal
+import warnings
 import db
 import llm
 from chunker import Chunker
@@ -21,24 +22,32 @@ class TestIntegration(IsolatedAsyncioTestCase):
         _proc_db = subprocess.Popen(
             shlex.split(Config.QDRANT.SHELL),
             cwd=Config.QDRANT.PATH,
-            env=Config.QDRANT.ENV
+            env=Config.QDRANT.ENV,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
         _proc_llm = subprocess.Popen(
             shlex.split(Config.LLAMA.SHELL),
-            cwd=Config.LLAMA.PATH
+            cwd=Config.LLAMA.PATH,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
 
     @classmethod
     def tearDownClass(cls):
         _proc_db.send_signal(signal.SIGINT)
         _proc_llm.send_signal(signal.SIGINT)
-        _proc_db.wait()
-        _proc_llm.wait()
+
+        print("pid " + str(_proc_db.pid) + " retcode " + str(_proc_db.wait()))
+        print("pid " + str(_proc_llm.pid) + " retcode " + str(_proc_llm.wait()))
 
     @skipIf(config_test.SKIP_INT_CRUD, "")
     async def test_crud(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
+
+        # block 'Api key is used with an insecure connection'
+        warnings.filterwarnings("ignore", module="qdrant_client")
 
         # sleep to let db & llm complete init
         await asyncio.sleep(4)

@@ -11,12 +11,16 @@ from config import Config
 
 def _print_duration(name: str, t: float):
     t = time.time() - t
-    tf = "sec"
-    if t < 0.1:
+    if t >= 1:
+        # 1.1 sec
+        PrintColor.OK("{name}: {t:.1f} sec".format(name=name, t=t))
+    elif t < 1 and t >= 0.1:
+        # 0.11 sec
+        PrintColor.OK("{name}: {t:.2f} sec".format(name=name, t=t))
+    else: # < 0.1
+        # 99 ms
         t = t * 1000
-        tf = "ms"
-
-    PrintColor.OK("{name}: {t:.3f} {tf}".format(name=name, t=t, tf=tf))
+        PrintColor.OK("{name}: {t:.0f} ms".format(name=name, t=t))
 
 # decor-fn is called immed on import of module with @decorator
 # if decor-fn uses config, make sure config is set BEFORE import of said module!
