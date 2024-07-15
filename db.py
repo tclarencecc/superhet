@@ -4,9 +4,14 @@ from typing import Iterable
 from config import Config
 from util import benchmark
 import os
+import warnings
 
 # qdrant fastembed reads from this env-var for embedding model path
 os.environ["FASTEMBED_CACHE_PATH"] = Config.FASTEMBED.PATH
+
+# qdrant raises 'Api key is used with an insecure connection' but theres
+# no need for tls as qdrant exists in the same machine as the python app!
+warnings.filterwarnings("ignore", module="qdrant_client")
 
 class _DBClient(object):
     def __init__(self):

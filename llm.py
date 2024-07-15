@@ -1,6 +1,8 @@
 from aiohttp import ClientSession
 from config import Config
-from util import benchmark, HttpError
+from util import benchmark
+
+class LlmError(Exception): ...
 
 @benchmark("llm completion")
 async def completion(ctx: str, query: str) -> str:
@@ -24,7 +26,17 @@ Context: {ctx}
             json={ "prompt": prompt }
         ) as res:
             if res.status != 200:
-                raise HttpError("llm.completion returned error status: " + str(res.status))
+                raise LlmError("llm.completion returned error status: " + str(res.status))
             
             json = await res.json()
             return json["content"]
+
+async def ready() -> bool:
+    async with ClientSession() as session:
+        async with session.get(Config.LLAMA.HOST + "/health") as res:
+            if res.status == 503: # the other 503 is from fail_on_no_slot which is not used here
+                return False
+            elif res.status == 500:
+                raise LlmError("llm.ready returned model failed to load error.")
+            else: # only 200 remains
+                return True

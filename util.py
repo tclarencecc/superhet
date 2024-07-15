@@ -43,8 +43,6 @@ def benchmark(name: str):
         return wrapper
     return decorate
 
-class HttpError(Exception): ...
-
 def extprocess(args: list[tuple[str, str]]):
     """
     args: list of tuple (cwd: str, cmd: str, env: dict)\n
@@ -63,10 +61,18 @@ def extprocess(args: list[tuple[str, str]]):
                         # has env
                         env = arg[2]
 
+                    stdout = None
+                    stderr = None
+                    if Config.PROCESS_STDOUT == False:
+                        stdout = subprocess.DEVNULL
+                        stderr = subprocess.DEVNULL
+
                     procs.append(subprocess.Popen(
                         shlex.split(arg[1]),
                         cwd=arg[0],
-                        env=env
+                        env=env,
+                        stdout=stdout,
+                        stderr=stderr
                     ))
                 fn()
             except KeyboardInterrupt:
@@ -77,7 +83,12 @@ def extprocess(args: list[tuple[str, str]]):
                 if sigint == False:
                     for proc in procs:
                         proc.send_signal(signal.SIGINT)
-
+                
+                # regardless of how parent proc ended, check child proc status
+                # wait is a blocking call but parent proc has already ended by now anyway
+                for proc in procs:
+                    if proc.wait() != 0:
+                        print("pid " + proc.pid + " did not terminate.")
         return wrapper
     return decorate
 

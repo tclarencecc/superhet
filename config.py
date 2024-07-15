@@ -36,4 +36,6 @@ class Config:
 
     BENCHMARK = True
 
+    PROCESS_STDOUT = False
+
     # add more as needed...

@@ -20,7 +20,7 @@ async def _coro_delete(collection: str, src: str):
 async def _coro_read(query: str, collection: str):
     ctx = await db.read(collection, query, 3) # 3 best so far
     ans = await llm.completion(ctx, query)
-    PrintColor.BLUE("\n" + ans + "\n")
+    PrintColor.BLUE(ans + "\n")
 
 
 class _ArgsParserQuery(Exception): ...
@@ -40,13 +40,16 @@ class _ArgsParser(ArgumentParser):
             raise ArgumentError(None, message)
 
 async def cli():
-    await asyncio.sleep(5) # let db & llm init first before starting cli
+    # llm should not really take more than 1-2 sec to load, but just in case
+    await asyncio.sleep(1)
+    while (await llm.ready()) == False:
+        await asyncio.sleep(1)
 
     loop = asyncio.get_event_loop()
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
     
-    PrintColor.BLUE("\nAsk me anything or $help for options\n")
+    PrintColor.BLUE("\nAsk me anything or $help for options")
 
     parser = _ArgsParser(
         prog="root",
@@ -103,7 +106,7 @@ async def cli():
 
                 elif arg.command == "$collection":
                     collection = arg.name
-                    PrintColor.OK("Collection set to '" + collection + "'")
+                    print("Collection set to '" + collection + "'")
 
                 elif arg.command == "$create" or arg.command == "$delete":
                     coll = arg.collection
@@ -111,7 +114,7 @@ async def cli():
                         coll = collection
 
                     if coll == "":
-                        PrintColor.ERROR("No collection specified. Input with -c option or use $collection command")
+                        print("No collection specified. Input with -c option or use $collection")
                     else:
                         lock = True
                         if arg.command == "$create":
@@ -121,10 +124,10 @@ async def cli():
 
             except _ArgsParserQuery:
                 if collection == "":
-                    PrintColor.ERROR("No collection specified. Input using $collection command")
+                    print("No collection specified. Input using $collection")
                 else:
                     lock = True
                     new_async_task(_coro_read(input, collection), _callback)
 
             except ArgumentError as e:
-                PrintColor.ERROR(e.message)
+                print(e.message)
