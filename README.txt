@@ -1,6 +1,6 @@
 --------
 run test
-- use cmd in project root folder (not in /test)
+- run in project root folder (not in /test)
 
 python3 -m unittest discover test -v
 

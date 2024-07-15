@@ -24,7 +24,7 @@ Context: {ctx}
             json={ "prompt": prompt }
         ) as res:
             if res.status != 200:
-                raise HttpError("llm.inference returned error status: " + str(res.status))
+                raise HttpError("llm.completion returned error status: " + str(res.status))
             
             json = await res.json()
             return json["content"]

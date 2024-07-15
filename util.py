@@ -16,7 +16,7 @@ def _print_duration(name: str, t: float):
         t = t * 1000
         tf = "ms"
 
-    print("\033[92m{name}: {t:.3f} {tf}\033[0m".format(name=name, t=t, tf=tf))
+    PrintColor.OK("{name}: {t:.3f} {tf}".format(name=name, t=t, tf=tf))
 
 # decor-fn is called immed on import of module with @decorator
 # if decor-fn uses config, make sure config is set BEFORE import of said module!

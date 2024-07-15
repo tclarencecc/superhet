@@ -61,7 +61,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         async def read() -> str:
             ctx = await db.read(collection, query)
             ans = await llm.completion(ctx, query)
-            print("\033[34m" + ans + "\033[0m")
+            print(ans)
             return ans
 
         print("\nreading..")
