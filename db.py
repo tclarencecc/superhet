@@ -5,6 +5,7 @@ from config import Config
 from util import benchmark
 import os
 import warnings
+import uuid
 
 # qdrant fastembed reads from this env-var for embedding model path
 os.environ["FASTEMBED_CACHE_PATH"] = Config.FASTEMBED.PATH
@@ -24,8 +25,15 @@ class _DBClient(object):
     async def __aexit__(self, type, value, traceback):
         await self.client.close()
 
+async def init():
+    async with _DBClient() as client:
+        res = await client.collection_exists(Config.COLLECTION)
+        if res == False:
+            # create the journal entry
+            await client.add(Config.COLLECTION, [""], metadata=[{}], ids=[uuid.UUID(int=0).hex])
+
 @benchmark("db create")
-async def create(collection: str, documents: Iterable[str], src: str) -> int:
+async def create(documents: Iterable[str], src: str) -> int:
     class MetaData:
         def __iter__(self):
             return self
@@ -34,7 +42,7 @@ async def create(collection: str, documents: Iterable[str], src: str) -> int:
 
     async with _DBClient() as client:
         # does repeated batch embed + upload of 32 docs per batch
-        res = await client.add(collection, documents, metadata=MetaData())
+        res = await client.add(Config.COLLECTION, documents, metadata=MetaData())
 
     # indexing payload.source may be necessary..
     # https://qdrant.tech/documentation/concepts/indexing/
@@ -42,26 +50,26 @@ async def create(collection: str, documents: Iterable[str], src: str) -> int:
     return len(res)
 
 @benchmark("db read")
-async def read(collection: str, query: str, limit=1) -> str:
+async def read(query: str, limit=1) -> str:
     if query == "":
         raise ValueError("db.read undefined query.")
 
     async with _DBClient() as client:
-        hits = await client.query(collection, query, limit=limit)
+        hits = await client.query(Config.COLLECTION, query, limit=limit)
 
     ret = ""
     for hit in hits:
         if ret != "":
             ret += "\n"
-        # score in hit.metadata["score"], if needed
-        ret += hit.metadata["document"]
+        if hit.metadata.get("document") is not None:
+            ret += hit.metadata["document"]
 
-    return ret
+    return ret.strip()
     
 @benchmark("db delete")
-async def delete(collection: str, src: str) -> bool:
+async def delete(src: str) -> bool:
     async with _DBClient() as client:
-        res = await client.delete(collection, points_selector=Filter(
+        res = await client.delete(Config.COLLECTION, points_selector=Filter(
             must=[FieldCondition(
                 key="source",
                 match=MatchValue(value=src)
@@ -69,7 +77,7 @@ async def delete(collection: str, src: str) -> bool:
         ))
         return res.status.value == "completed"
 
-@benchmark("db drop")
-async def drop(collection: str) -> bool:
-    async with _DBClient() as client:
-        return await client.delete_collection(collection)
+# @benchmark("db drop")
+# async def drop(collection: str) -> bool:
+#     async with _DBClient() as client:
+#         return await client.delete_collection(collection)

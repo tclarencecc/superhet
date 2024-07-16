@@ -7,22 +7,6 @@ import db
 import llm
 from util import new_async_task, PrintColor
 
-async def _coro_create(file: str, collection: str, src: str):
-    chunker = Chunker(file, {
-        "size": 250, # 250 best so far
-        "overlap": 0.25 # 0.25 best so far
-    })
-    await db.create(collection, chunker, src)
-
-async def _coro_delete(collection: str, src: str):
-    await db.delete(collection, src)
-
-async def _coro_read(query: str, collection: str):
-    ctx = await db.read(collection, query, 3) # 3 best so far
-    ans = await llm.completion(ctx, query)
-    PrintColor.BLUE(ans + "\n")
-
-
 class _ArgsParserQuery(Exception): ...
 
 class _ArgsParser(ArgumentParser):
@@ -45,6 +29,9 @@ async def cli():
     while (await llm.ready()) == False:
         await asyncio.sleep(1)
 
+    # in case no collection exists yet
+    await db.init()
+
     loop = asyncio.get_event_loop()
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
@@ -55,14 +42,9 @@ async def cli():
         prog="root",
         add_help=False,
         usage="""
-  $collection NAME                      Collection used for this session
-  
-  $create FILE -s NAME [-c NAME]        Create data from FILE
-    -s NAME, --source NAME              Categorize data under this source
-    -c NAME, --collection NAME          Optional. Used instead of NAME in $collection
-
-  $delete SOURCE [-c NAME]              Delete all data with SOURCE category
-    -c NAME, --collection NAME          Optional. Used instead of NAME in $collection"""
+  $create FILE -s NAME                  Create data from FILE
+    -s NAME, --source NAME              Group under this source
+  $delete SOURCE                        Delete all data with SOURCE group"""
     )
     
     sub = parser.add_subparsers(dest="command")
@@ -70,23 +52,16 @@ async def cli():
     # $help
     sub.add_parser("$help")
 
-    # $collection <name>
-    collection_parser = sub.add_parser("$collection")
-    collection_parser.add_argument("name")
-
-    # $create <file> -s <source> [-c <collection>]
+    # $create FILE -s SOURCE
     create_parser = sub.add_parser("$create")
     create_parser.add_argument("file")
     create_parser.add_argument("-s", "--source", type=str, required=True)
-    create_parser.add_argument("-c", "--collection", type=str)
 
-    # $delete <source> [-c <collection>]
+    # $delete SOURCE
     delete_parser = sub.add_parser("$delete")
     delete_parser.add_argument("source")
-    delete_parser.add_argument("-c", "--collection", type=str)
     
     lock = False # cli edit lock flag
-    collection = "" # collection for this session
 
     def _callback():
         nonlocal lock
@@ -103,31 +78,33 @@ async def cli():
                 arg = parser.parse_args(shlex.split(input))
                 if arg.command == "$help":
                     parser.print_usage()
+                    
+                elif arg.command == "$create":
+                    async def coro_create():
+                        chunker = Chunker(arg.file, {
+                            "size": 250, # 250 best so far
+                            "overlap": 0.25 # 0.25 best so far
+                        })
+                        await db.create(chunker, arg.source)
 
-                elif arg.command == "$collection":
-                    collection = arg.name
-                    print("Collection set to '" + collection + "'")
+                    lock = True
+                    new_async_task(coro_create(), _callback)
 
-                elif arg.command == "$create" or arg.command == "$delete":
-                    coll = arg.collection
-                    if coll == "" or coll is None:
-                        coll = collection
+                elif arg.command == "$delete":
+                    async def coro_delete():
+                        await db.delete(arg.source)
 
-                    if coll == "":
-                        print("No collection specified. Input with -c option or use $collection")
-                    else:
-                        lock = True
-                        if arg.command == "$create":
-                            new_async_task(_coro_create(arg.file, coll, arg.source), _callback)
-                        else:
-                            new_async_task(_coro_delete(coll, arg.source), _callback)
+                    lock = True
+                    new_async_task(coro_delete(), _callback)
 
             except _ArgsParserQuery:
-                if collection == "":
-                    print("No collection specified. Input using $collection")
-                else:
+                    async def coro_read():
+                        ctx = await db.read(input, 3) # 3 best so far
+                        ans = await llm.completion(ctx, input)
+                        PrintColor.BLUE(ans + "\n")
+
                     lock = True
-                    new_async_task(_coro_read(input, collection), _callback)
+                    new_async_task(coro_read(), _callback)
 
             except ArgumentError as e:
                 print(e.message)

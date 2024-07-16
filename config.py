@@ -38,4 +38,7 @@ class Config:
 
     PROCESS_STDOUT = False
 
+    # qdrant recommends multitenancy as opposed to multicollection
+    COLLECTION = "my collection"
+
     # add more as needed...

@@ -52,23 +52,24 @@ class TestIntegration(IsolatedAsyncioTestCase):
         # sleep to let db & llm complete init
         await asyncio.sleep(4)
 
-        collection = "_test_"
-        src="ffx"
+        src="_test_"
         query = "how does python manage memory?"
 
-        print("\n\ninit..")
-        await db.drop(collection) # drop just in case prev test did not cleanup properly
+        # in case no colletion exists yet, then cleanup prev test data
+        print("\ninit..")
+        await db.init()
+        await db.delete(src)
 
         print("\ncreating..")
         chunker = Chunker("./test/t1.txt", {
             "size": 250,
             "overlap": 0.15
         })
-        c_res = await db.create(collection, chunker, src)
+        c_res = await db.create(chunker, src)
         self.assertTrue(c_res > 0)
 
         async def read() -> str:
-            ctx = await db.read(collection, query)
+            ctx = await db.read(query)
             ans = await llm.completion(ctx, query)
             print(ans)
             return ans
@@ -77,11 +78,8 @@ class TestIntegration(IsolatedAsyncioTestCase):
         await read()
 
         print("\ndeleting..")
-        self.assertTrue(await db.delete(collection, src))
+        self.assertTrue(await db.delete(src))
 
         print("\nread non-existing..")
         nonex = await read()
         self.assertTrue(nonex == "Unable to answer as no data can be found in the record.")
-
-        print("\ndropping..")
-        self.assertTrue(await db.drop(collection))
