@@ -6,6 +6,7 @@ import shlex
 import signal
 import asyncio
 from enum import Enum
+from datetime import datetime, timezone
 from typing import Callable
 from config import Config
 
@@ -103,8 +104,11 @@ def new_async_task(coro, callback: Callable=None):
 
         try:
             # needed to avoid 'Task exception was never retrieved'
-            # either return None, exception or raise CancelledError, InvalidStateError
-            task.exception()
+            # either returns None, exception or raise CancelledError, InvalidStateError
+            ex = task.exception()
+            if ex is not None:
+                raise ex
+            
         except Exception as e:
             print(e)
 
@@ -156,3 +160,7 @@ class PrintColor:
     def _print(color: str, input: str):
         print(color + input + "\033[0m")
         
+def timestamp() -> str:
+    return datetime.now(
+        datetime.now(timezone.utc).astimezone().tzinfo
+    ).replace(microsecond=0).isoformat()

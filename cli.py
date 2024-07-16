@@ -42,6 +42,7 @@ async def cli():
         prog="root",
         add_help=False,
         usage="""
+  $list                                 List all sources
   $create FILE -s NAME                  Create data from FILE
     -s NAME, --source NAME              Group under this source
   $delete SOURCE                        Delete all data with SOURCE group"""
@@ -51,6 +52,9 @@ async def cli():
 
     # $help
     sub.add_parser("$help")
+
+    # $list
+    sub.add_parser("$list")
 
     # $create FILE -s SOURCE
     create_parser = sub.add_parser("$create")
@@ -63,9 +67,14 @@ async def cli():
     
     lock = False # cli edit lock flag
 
-    def _callback():
+    def callback():
         nonlocal lock
         lock = False
+
+    def async_task(coro):
+        nonlocal lock
+        lock = True
+        new_async_task(coro, callback)
 
     while True:
         bytes = await reader.read(500)
@@ -78,6 +87,20 @@ async def cli():
                 arg = parser.parse_args(shlex.split(input))
                 if arg.command == "$help":
                     parser.print_usage()
+
+                elif arg.command == "$list":
+                    async def coro_list():
+                        list = await db.list()
+
+                        print("total " + str(len(list)))
+                        print("{:<20}  {:>5}  {}".format("source", "rows", "created"))
+                        for li in list:
+                            print("{:<20}  {:>5}  {}".format(
+                                li["name"],
+                                li["count"],
+                                li["timestamp"]
+                            ))
+                    async_task(coro_list())
                     
                 elif arg.command == "$create":
                     async def coro_create():
@@ -86,25 +109,19 @@ async def cli():
                             "overlap": 0.25 # 0.25 best so far
                         })
                         await db.create(chunker, arg.source)
-
-                    lock = True
-                    new_async_task(coro_create(), _callback)
+                    async_task(coro_create())
 
                 elif arg.command == "$delete":
                     async def coro_delete():
                         await db.delete(arg.source)
-
-                    lock = True
-                    new_async_task(coro_delete(), _callback)
+                    async_task(coro_delete())
 
             except _ArgsParserQuery:
                     async def coro_read():
                         ctx = await db.read(input, 3) # 3 best so far
                         ans = await llm.completion(ctx, input)
                         PrintColor.BLUE(ans + "\n")
-
-                    lock = True
-                    new_async_task(coro_read(), _callback)
+                    async_task(coro_read())
 
             except ArgumentError as e:
                 print(e.message)
