@@ -8,7 +8,8 @@ import asyncio
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Callable
-from config import Config
+
+from app.config import Config
 
 def _print_duration(name: str, t: float):
     t = time.time() - t

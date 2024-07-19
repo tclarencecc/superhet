@@ -1,11 +1,12 @@
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from typing import Iterable
-from config import Config
-from util import benchmark, timestamp
 import os
 import warnings
 import uuid
+
+from app.config import Config
+from app.util import benchmark, timestamp
 
 # qdrant fastembed reads from this env-var for embedding model path
 os.environ["FASTEMBED_CACHE_PATH"] = Config.FASTEMBED.PATH

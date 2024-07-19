@@ -3,12 +3,13 @@ import subprocess
 import shlex
 import signal
 import warnings
-import db
-import llm
-from chunker import Chunker
 import asyncio
+
+import app.db as db
+import app.llm as llm
+from app.chunker import Chunker
+from app.config import Config
 import config_test
-from config import Config
 
 _proc_db = None
 _proc_llm = None

@@ -1,6 +1,7 @@
 from aiohttp import ClientSession
-from config import Config
-from util import benchmark
+
+from app.config import Config
+from app.util import benchmark
 
 class LlmError(Exception): ...
 

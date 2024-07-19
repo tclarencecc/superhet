@@ -2,10 +2,11 @@ import asyncio
 from argparse import ArgumentParser, ArgumentError
 import shlex
 import sys
-from chunker import Chunker
-import db
-import llm
-from util import new_async_task, PrintColor
+
+from app.chunker import Chunker
+import app.db as db
+import app.llm as llm
+from app.util import new_async_task, PrintColor
 
 class _ArgsParserQuery(Exception): ...
 

@@ -1,7 +1,8 @@
 import asyncio
-from util import extprocess
-from config import Config
-from cli import cli
+
+from app.util import extprocess
+from app.config import Config
+from app.cli import cli
 
 @extprocess([
     (Config.QDRANT.PATH, Config.QDRANT.SHELL, Config.QDRANT.ENV),

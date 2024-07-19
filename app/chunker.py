@@ -1,6 +1,7 @@
 from typing import Iterable
-from stream import FileStream
-from config import Config
+
+from app.stream import FileStream
+from app.config import Config
 
 class Chunker:
     def __init__(self, input: str, params: dict[str, any]={}):
