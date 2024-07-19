@@ -94,7 +94,7 @@ def extprocess(args: list[tuple[str, str]]):
                 # wait is a blocking call but parent proc has already ended by now anyway
                 for proc in procs:
                     if proc.wait() != 0:
-                        print("pid " + proc.pid + " did not terminate.")
+                        print("pid " + str(proc.pid) + " did not terminate.")
         return wrapper
     return decorate
 
