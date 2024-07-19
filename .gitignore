@@ -23,21 +23,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
 # Environments
 .env
 .venv
@@ -49,9 +34,8 @@ venv.bak/
 
 # others
 .DS_Store
+samples/
 
 # prebuilt executables (& their dependencies), runtime downloadable resources
 bin/*
 !bin/config.yaml
-
-samples/
