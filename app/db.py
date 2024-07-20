@@ -124,7 +124,7 @@ async def _update_journal(src: str, count: int) -> bool:
         )
         return res.status.value == "completed"
 
-# @benchmark("db drop")
-# async def drop(collection: str) -> bool:
-#     async with _DBClient() as client:
-#         return await client.delete_collection(collection)
+@benchmark("db drop")
+async def drop(collection: str) -> bool:
+    async with _DBClient() as client:
+        return await client.delete_collection(collection)

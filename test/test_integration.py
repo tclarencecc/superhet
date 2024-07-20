@@ -53,13 +53,17 @@ class TestIntegration(IsolatedAsyncioTestCase):
         # sleep to let db & llm complete init
         await asyncio.sleep(4)
 
-        src="_test_"
+        collection = "_test_collection_"
+        src="python"
         query = "how does python manage memory?"
+        nrf = "Unable to answer as no data can be found in the record."
 
-        # in case no colletion exists yet, then cleanup prev test data
+        # override default collection and start with a blank collection
+        # repeated create/delete on same collection often results to 
+        # inconsistent search behavior!
         print("\ninit..")
+        Config.COLLECTION = collection
         await db.init()
-        await db.delete(src)
 
         print("creating..")
         chunker = Chunker("./test/t1.txt", {
@@ -85,21 +89,16 @@ class TestIntegration(IsolatedAsyncioTestCase):
             print(ans)
             return ans
 
-        # if db has other data, it apparently no longer returns any vector for this query!
-        # print("\nreading..")
-        # await read()
+        print("reading..")
+        propans = await read()
+        self.assertTrue(propans != nrf)
 
         print("deleting..")
         self.assertTrue(await db.delete(src))
 
         print("read non-existing..")
         nonex = await read()
+        self.assertTrue(nonex == nrf)
 
-        # llm might sometimes hallucinate an answer here...
-        nrf = "Unable to answer as no data can be found in the record."
-        if nonex != nrf:
-            print("hallucinated answer: " + nonex)
-        else:
-            self.assertTrue(nonex == "Unable to answer as no data can be found in the record.")
-
-        await db.delete(src)
+        print("dropping..")
+        await db.drop(collection)
