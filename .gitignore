@@ -38,4 +38,3 @@ samples/
 
 # prebuilt executables (& their dependencies), runtime downloadable resources
 bin/*
-!bin/config.yaml

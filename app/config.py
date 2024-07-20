@@ -16,9 +16,9 @@ class Config:
 
     class _qdrant:
         HOST = "http://localhost:6333"
+        GRPC = 6334
         PATH = "./bin"
-        # config.yaml is only for setting grpc_port=null as its impossible to pass null/None in env dict
-        SHELL = "./qdrant --config-path ./config.yaml"
+        SHELL = "./qdrant"
         KEY = _qdrant_key
         # https://qdrant.tech/documentation/guides/configuration/#environment-variables
         ENV = {

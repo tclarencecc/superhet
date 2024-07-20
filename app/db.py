@@ -22,7 +22,11 @@ class _DBClient(object):
         self.client: AsyncQdrantClient = None
 
     async def __aenter__(self) -> AsyncQdrantClient:
-        self.client = AsyncQdrantClient(Config.QDRANT.HOST, api_key=Config.QDRANT.KEY)
+        self.client = AsyncQdrantClient(Config.QDRANT.HOST,
+            api_key=Config.QDRANT.KEY,
+            grpc_port=Config.QDRANT.GRPC,
+            prefer_grpc=True
+        )
         return self.client
     
     async def __aexit__(self, type, value, traceback):
