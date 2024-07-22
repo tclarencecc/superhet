@@ -7,6 +7,12 @@ from app.chunker import Chunker
 import app.db as db
 import app.llm as llm
 from app.util import new_async_task, PrintColor
+from app.config import Config
+
+_CMD_HELP = Config.CLI_CMD_PREFIX + "help"
+_CMD_LIST = Config.CLI_CMD_PREFIX + "list"
+_CMD_CREATE = Config.CLI_CMD_PREFIX + "create"
+_CMD_DELETE = Config.CLI_CMD_PREFIX + "delete"
 
 class _ArgsParserQuery(Exception): ...
 
@@ -37,33 +43,37 @@ async def cli():
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
     
-    PrintColor.BLUE("\nAsk me anything or $help for options")
+    PrintColor.BLUE("\nAsk me anything or " + _CMD_HELP + " for options")
 
     parser = _ArgsParser(
         prog="root",
         add_help=False,
         usage="""
-  $list                                 List all sources
-  $create FILE -s NAME                  Create data from FILE
-    -s NAME, --source NAME              Group under this source
-  $delete SOURCE                        Delete all data with SOURCE group"""
+  {list}                                List all sources
+  {create} FILE -s NAME                 Create data from FILE
+    -s NAME, --source NAME             Group under this source
+  {delete} SOURCE                       Delete all data with SOURCE group""".format(
+        list=_CMD_LIST,
+        create=_CMD_CREATE,
+        delete=_CMD_DELETE
+        )
     )
     
     sub = parser.add_subparsers(dest="command")
 
-    # $help
-    sub.add_parser("$help")
+    # help
+    sub.add_parser(_CMD_HELP)
 
-    # $list
-    sub.add_parser("$list")
+    # list
+    sub.add_parser(_CMD_LIST)
 
-    # $create FILE -s SOURCE
-    create_parser = sub.add_parser("$create")
+    # create FILE -s SOURCE
+    create_parser = sub.add_parser(_CMD_CREATE)
     create_parser.add_argument("file")
     create_parser.add_argument("-s", "--source", type=str, required=True)
 
-    # $delete SOURCE
-    delete_parser = sub.add_parser("$delete")
+    # delete SOURCE
+    delete_parser = sub.add_parser(_CMD_DELETE)
     delete_parser.add_argument("source")
     
     lock = False # cli edit lock flag
@@ -86,10 +96,10 @@ async def cli():
 
             try:
                 arg = parser.parse_args(shlex.split(input))
-                if arg.command == "$help":
+                if arg.command == _CMD_HELP:
                     parser.print_usage()
 
-                elif arg.command == "$list":
+                elif arg.command == _CMD_LIST:
                     async def coro_list():
                         list = await db.list()
 
@@ -103,7 +113,7 @@ async def cli():
                             ))
                     async_task(coro_list())
                     
-                elif arg.command == "$create":
+                elif arg.command == _CMD_CREATE:
                     async def coro_create():
                         chunker = Chunker(arg.file, {
                             "size": 250, # 250 best so far
@@ -112,7 +122,7 @@ async def cli():
                         await db.create(chunker, arg.source)
                     async_task(coro_create())
 
-                elif arg.command == "$delete":
+                elif arg.command == _CMD_DELETE:
                     async def coro_delete():
                         await db.delete(arg.source)
                     async_task(coro_delete())

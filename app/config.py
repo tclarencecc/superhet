@@ -46,4 +46,6 @@ class Config:
     # qdrant recommends multitenancy as opposed to multicollection
     COLLECTION = "my collection"
 
+    CLI_CMD_PREFIX = "!"
+
     # add more as needed...
