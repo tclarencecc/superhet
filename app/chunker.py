@@ -2,6 +2,7 @@ from typing import Iterable
 
 from app.stream import FileStream
 from app.config import Config
+from app.util import benchmark
 
 class Chunker:
     def __init__(self, input: str, params: dict[str, any]={}):
@@ -30,6 +31,7 @@ class Chunker:
     def __iter__(self):
         return self
 
+    # @benchmark("chunker next")
     def __next__(self):
         if len(self._splitted) == 0:
             # repeat call on next(_iterable) until _splitted is filled up

@@ -19,10 +19,14 @@ def _print_duration(name: str, t: float):
     elif t < 1 and t >= 0.1:
         # 0.11 sec
         PrintColor.OK(f"{name}: {t:.2f} sec")
-    else: # < 0.1
+    elif t < 0.1 and t >= 0.001:
         # 99 ms
         t = t * 1000
         PrintColor.OK(f"{name}: {t:.0f} ms")
+    else: # < 0.001
+        # 999 μs
+        t = t * 1000000
+        PrintColor.OK(f"{name}: {t:.0f} μs")
 
 # decor-fn is called immed on import of module with @decorator
 # if decor-fn uses config, make sure config is set BEFORE import of said module!
