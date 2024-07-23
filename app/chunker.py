@@ -84,10 +84,8 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
 
 def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool) -> list[str]:
     if overlap < Config.CHUNK.OVERLAP.MIN or overlap > Config.CHUNK.OVERLAP.MAX:
-        raise ValueError("chunker._sliding_window overlap should be between {min_ov} and {max_ov}.".format(
-            min_ov=Config.CHUNK.OVERLAP.MIN,
-            max_ov=Config.CHUNK.OVERLAP.MAX
-        ))
+        raise ValueError(f"chunker._sliding_window overlap should be "
+            f"between {Config.CHUNK.OVERLAP.MIN} and {Config.CHUNK.OVERLAP.MAX}.")
     
     min_cs = Config.CHUNK.SIZE.MIN
     if alphabet:
@@ -98,10 +96,7 @@ def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool)
         max_cs = int(Config.FASTEMBED.TOKEN * 0.8)
         
     if chunk_size < min_cs or chunk_size > max_cs:
-        raise ValueError("chunker._sliding_window chunk_size should be between {min_cs} and {max_cs}.".format(
-            min_cs=min_cs,
-            max_cs=max_cs
-        ))
+        raise ValueError(f"chunker._sliding_window chunk_size should be between {min_cs} and {max_cs}.")
 
     ret = []
     overlap_size = chunk_size * overlap

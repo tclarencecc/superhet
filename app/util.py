@@ -15,14 +15,14 @@ def _print_duration(name: str, t: float):
     t = time.time() - t
     if t >= 1:
         # 1.1 sec
-        PrintColor.OK("{name}: {t:.1f} sec".format(name=name, t=t))
+        PrintColor.OK(f"{name}: {t:.1f} sec")
     elif t < 1 and t >= 0.1:
         # 0.11 sec
-        PrintColor.OK("{name}: {t:.2f} sec".format(name=name, t=t))
+        PrintColor.OK(f"{name}: {t:.2f} sec")
     else: # < 0.1
         # 99 ms
         t = t * 1000
-        PrintColor.OK("{name}: {t:.0f} ms".format(name=name, t=t))
+        PrintColor.OK(f"{name}: {t:.0f} ms")
 
 # decor-fn is called immed on import of module with @decorator
 # if decor-fn uses config, make sure config is set BEFORE import of said module!
@@ -94,7 +94,7 @@ def extprocess(args: list[tuple[str, str]]):
                 # wait is a blocking call but parent proc has already ended by now anyway
                 for proc in procs:
                     if proc.wait() != 0:
-                        print("pid " + str(proc.pid) + " did not terminate.")
+                        print(f"pid {proc.pid} did not terminate.")
         return wrapper
     return decorate
 
@@ -131,8 +131,7 @@ class EnumDict:
             self._dict[k.name] = v
         else:
             if k.value is None:
-                raise ValueError("EnumDict enum member '{name}' has no preset value. Set a user-defined value first."
-                    .format(name=k.name))
+                raise ValueError(f"EnumDict enum member '{k.name}' has no preset value. Set a user-defined value first.")
 
             self._dict[k.name] = k.value
 
@@ -159,7 +158,7 @@ class PrintColor:
 
     @staticmethod
     def _print(color: str, input: str):
-        print(color + input + "\033[0m")
+        print(f"{color}{input}\033[0m")
         
 def timestamp() -> str:
     return datetime.now(

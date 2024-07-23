@@ -20,21 +20,21 @@ Context: {ctx}
 <|im_end|>
 <|im_start|>assistant
 """.format(ctx=ctx, query=query)
-    
+
     async with ClientSession() as session:
-        async with session.post(Config.LLAMA.HOST + "/completion",
-            headers={ "Authorization": "Bearer " + Config.LLAMA.KEY },
+        async with session.post(f"{Config.LLAMA.HOST}/completion",
+            headers={ "Authorization": f"Bearer {Config.LLAMA.KEY}" },
             json={ "prompt": prompt }
         ) as res:
             if res.status != 200:
-                raise LlmError("llm.completion returned error status: " + str(res.status))
+                raise LlmError(f"llm.completion returned error status: {res.status}")
             
             json = await res.json()
             return json["content"]
 
 async def ready() -> bool:
     async with ClientSession() as session:
-        async with session.get(Config.LLAMA.HOST + "/health") as res:
+        async with session.get(f"{Config.LLAMA.HOST}/health") as res:
             if res.status == 503: # the other 503 is from fail_on_no_slot which is not used here
                 return False
             elif res.status == 500:

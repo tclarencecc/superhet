@@ -43,7 +43,7 @@ async def cli():
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
     
-    PrintColor.BLUE("\nAsk me anything or " + _CMD_HELP + " for options")
+    PrintColor.BLUE(f"\nAsk me anything or {_CMD_HELP} for options")
 
     parser = _ArgsParser(
         prog="root",
@@ -103,14 +103,11 @@ async def cli():
                     async def coro_list():
                         list = await db.list()
 
-                        print("total " + str(len(list)))
-                        print("{:<20}  {:>5}  {}".format("source", "rows", "created"))
+                        print(f"total {len(list)}")
+                        print(f"{'source':<20}  {'rows':>5}  created")
                         for li in list:
-                            print("{:<20}  {:>5}  {}".format(
-                                li["name"],
-                                li["count"],
-                                li["timestamp"]
-                            ))
+                            print(f"{li["name"]:<20}  {li["count"]:>5}  {li["timestamp"]}")
+
                     async_task(coro_list())
                     
                 elif arg.command == _CMD_CREATE:
@@ -131,7 +128,7 @@ async def cli():
                     async def coro_read():
                         ctx = await db.read(input, 3) # 3 best so far
                         ans = await llm.completion(ctx, input)
-                        PrintColor.BLUE(ans + "\n")
+                        PrintColor.BLUE(f"{ans}\n")
                     async_task(coro_read())
 
             except ArgumentError as e:
