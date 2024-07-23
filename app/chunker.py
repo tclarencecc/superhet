@@ -2,7 +2,7 @@ from typing import Iterable
 
 from app.stream import FileStream
 from app.config import Config
-from app.util import benchmark
+from app.util import MutableString, benchmark
 
 class Chunker:
     def __init__(self, input: str, params: dict[str, any]={}):
@@ -56,10 +56,10 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
     ret = []
     idx = 0
     max = len(input)
-    sentence = "" # no need for 'stringwriter'; each assembled sentence is just a subsection of a paragraph
+    sentence = MutableString()
 
     for char in input:
-        sentence += char
+        sentence.add(char)
         idx += 1
 
         if char in stop_marks:
@@ -68,15 +68,15 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
                 if input[idx] != " " and input[idx] != "\n":
                     continue # skip outputting; is part of 'x.x' word
 
-            sentence = sentence.strip()
+            sentence.strip()
             if alphabet:
                 # >1 whitespaces will also count as 'words'. +1 for stop mark
-                count = len(sentence.split(" ")) + 1
+                count = sentence.split_len(" ") + 1
             else:
                 count = len(sentence) # whitespaces in between also count as 'word/s'
 
-            ret.append((sentence, count))
-            sentence = ""
+            ret.append((sentence.value(), count))
+            sentence.clear()
 
     return ret
 
@@ -106,17 +106,17 @@ def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool)
     snt_wgt = _split_to_sentence_weight(input, alphabet)
     idx = 0
     total = 0
-    sentence = "" # no need for 'stringwriter'; each assembled sentence is just a subsection of a paragraph
+    sentence = MutableString()
 
     while idx < len(snt_wgt):
-        if alphabet and sentence != "":
-            sentence += " "
-        sentence += snt_wgt[idx][0]
+        if alphabet and sentence.not_empty():
+            sentence.add(" ")
+        sentence.add(snt_wgt[idx][0])
         total += snt_wgt[idx][1]
 
         if total > chunk_size:
             # sentence collected up to this point is enough, output it
-            ret.append(sentence)
+            ret.append(sentence.value())
 
             # apply sliding window; slide back overlap% reusing previous sentences
             deduct = 0
@@ -127,13 +127,13 @@ def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool)
                 idx = idx - 1
 
             total = 0
-            sentence = ""
+            sentence.clear()
         else:
             idx += 1
 
     # sentence outputting happens when chunk_size is reached (handled above) OR
     # looping through all sentences has completed and chunk_size is not yet reached
-    if sentence != "":
-        ret.append(sentence)
+    if sentence.not_empty():
+        ret.append(sentence.value())
 
     return ret
