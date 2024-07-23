@@ -30,7 +30,7 @@ class Config:
     class _llama:
         HOST = "http://127.0.0.1:8080"
         PATH = "./bin"
-        SHELL = f"./llama-server -m ./qwen2-1_5b-instruct-q8_0.gguf -fa -n 256 --log-disable --api-key {_llama_key}"
+        SHELL = f"./llama-server -m ./qwen2-1_5b-instruct-q4_k_m.gguf -fa --log-disable --api-key {_llama_key}"
         KEY = _llama_key
     LLAMA = _llama
 

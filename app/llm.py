@@ -24,7 +24,10 @@ Context: {ctx}
     async with ClientSession() as session:
         async with session.post(f"{Config.LLAMA.HOST}/completion",
             headers={ "Authorization": f"Bearer {Config.LLAMA.KEY}" },
-            json={ "prompt": prompt }
+            json={
+                "prompt": prompt,
+                "temperature": 0.1
+            }
         ) as res:
             if res.status != 200:
                 raise LlmError(f"llm.completion returned error status: {res.status}")

@@ -113,8 +113,8 @@ async def cli():
                 elif arg.command == _CMD_CREATE:
                     async def coro_create():
                         chunker = Chunker(arg.file, {
-                            "size": 250, # 250 best so far
-                            "overlap": 0.25 # 0.25 best so far
+                            "size": 250,
+                            "overlap": 0.15
                         })
                         await db.create(chunker, arg.source)
                     async_task(coro_create())
@@ -126,7 +126,7 @@ async def cli():
 
             except _ArgsParserQuery:
                     async def coro_read():
-                        ctx = await db.read(input, 3) # 3 best so far
+                        ctx = await db.read(input)
                         ans = await llm.completion(ctx, input)
                         PrintColor.BLUE(f"{ans}\n")
                     async_task(coro_read())
