@@ -25,6 +25,7 @@ class Config:
             "QDRANT__SERVICE__API_KEY": _qdrant_key,
             "QDRANT__TELEMETRY_DISABLED": "true"
         }
+        READ_LIMIT = 1
     QDRANT = _qdrant
 
     class _llama:
@@ -32,6 +33,11 @@ class Config:
         PATH = "./bin"
         SHELL = f"./llama-server -m ./qwen2-1_5b-instruct-q4_k_m.gguf -fa --log-disable --api-key {_llama_key}"
         KEY = _llama_key
+
+        class _option:
+            TEMPERATURE = 0.1
+            # add more completion option as needed...
+        OPTION = _option
     LLAMA = _llama
 
     class _chunk:

@@ -6,6 +6,13 @@ from app.util import MutableString, benchmark
 
 class Chunker:
     def __init__(self, input: str, params: dict[str, any]={}):
+        """
+        params:
+            size: int = word count per chunk
+            overlap: float = decimal percentage of overlap in words between chunks
+            alphabet: bool = is document encoded in purely alphabetical script? default true
+            separator: str = document content separator. default \\n\\n
+        """
         def assign(k: str, dv: any):
             if k in params:
                 return params[k]

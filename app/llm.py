@@ -26,7 +26,7 @@ Context: {ctx}
             headers={ "Authorization": f"Bearer {Config.LLAMA.KEY}" },
             json={
                 "prompt": prompt,
-                "temperature": 0.1
+                "temperature": Config.LLAMA.OPTION.TEMPERATURE
             }
         ) as res:
             if res.status != 200:

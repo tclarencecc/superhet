@@ -60,12 +60,12 @@ async def create(documents: Iterable[str], src: str) -> bool:
     return False
 
 @benchmark("db read")
-async def read(query: str, limit=1) -> str:
+async def read(query: str) -> str:
     if query == "":
         raise ValueError("db.read undefined query.")
 
     async with _DBClient() as client:
-        hits = await client.query(Config.COLLECTION, query, limit=limit)
+        hits = await client.query(Config.COLLECTION, query, limit=Config.QDRANT.READ_LIMIT)
 
     ret = ""
     for hit in hits:
