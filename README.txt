@@ -13,4 +13,11 @@ pip3 uninstall -r requirements.txt -y
 pip3 freeze > requirements.txt
 pip3 install 'qdrant-client[fastembed]'
 pip3 install aiohttp
+pip3 install pyyaml
+pip3 install pyinstaller
 pip3 freeze > requirements.txt
+
+---------
+build exe
+
+pyinstaller main.spec

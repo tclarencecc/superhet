@@ -1,4 +1,4 @@
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientConnectionError
 
 from app.config import Config
 from app.util import benchmark
@@ -37,10 +37,15 @@ Context: {ctx}
 
 async def ready() -> bool:
     async with ClientSession() as session:
-        async with session.get(f"{Config.LLAMA.HOST}/health") as res:
-            if res.status == 503: # the other 503 is from fail_on_no_slot which is not used here
-                return False
-            elif res.status == 500:
-                raise LlmError("llm.ready returned model failed to load error.")
-            else: # only 200 remains
-                return True
+        try:
+            async with session.get(f"{Config.LLAMA.HOST}/health") as res:
+                if res.status == 503: # the other 503 is from fail_on_no_slot which is not used here
+                    return False
+                elif res.status == 500:
+                    raise LlmError("llm.ready returned model failed to load error.")
+                else: # only 200 remains
+                    return True
+        except ClientConnectionError:
+            # this error happens if llama-server has not yet started its http server.
+            # caller of this func should handle retries
+            pass

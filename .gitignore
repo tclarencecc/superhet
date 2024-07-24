@@ -34,7 +34,7 @@ venv.bak/
 
 # others
 .DS_Store
-samples/
 
-# prebuilt executables (& their dependencies), runtime downloadable resources
+# binaries, test data
 bin/
+samples/

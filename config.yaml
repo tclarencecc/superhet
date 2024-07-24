@@ -1,0 +1,10 @@
+db:
+  # path relative from _internal folder
+  # default ../db
+  path: ../db
+
+llm:
+  # path relative from _internal folder
+  # model must be of "gguf" type
+  # default ../model.gguf
+  model: ../model.gguf
