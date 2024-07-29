@@ -1,17 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
 import shutil
+import tarfile
+import os
 
-name = 'main'
+name = "main"
 
 a = Analysis(
-    ['main.py'],
+    ["main.py"],
     pathex=[],
     binaries=[],
     datas=[
-        ('bin/fast-bge-small-en', 'fast-bge-small-en'),
-        ('bin/llama-server', '.'),
-        ('bin/qdrant', '.'),
-        ('config.yaml', '.')
+        ("bin/fast-bge-small-en", "fast-bge-small-en"),
+        ("bin/llama-server", "."),
+        ("bin/qdrant", "."),
+        ("config.yaml", ".")
     ],
     hiddenimports=[],
     hookspath=[],
@@ -50,4 +52,9 @@ coll = COLLECT(
     name=name,
 )
 
-shutil.move(f'./dist/{name}/_internal/config.yaml', f'./dist/{name}/config.yaml')
+shutil.move(f"./dist/{name}/_internal/config.yaml", f"./dist/{name}/config.yaml")
+
+# print("----- INFO: Building tar.gz archive")
+# src = f"./dist/{name}"
+# with tarfile.open(f"{src}.tar.gz", "w:gz") as tar:
+#    tar.add(src, arcname=os.path.basename(src))
