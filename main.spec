@@ -10,7 +10,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ("bin/fast-bge-small-en", "fast-bge-small-en"),
+        #("bin/fast-bge-small-en", "fast-bge-small-en"), # will be downloaded from hf
         ("bin/llama-server", "."),
         ("bin/qdrant", "."),
         ("config.yaml", ".")

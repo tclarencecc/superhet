@@ -31,6 +31,7 @@ numpy==1.26.4
 onnx==1.16.1
 onnxruntime==1.18.1
 packaging==24.1
+pipdeptree==2.23.1
 portalocker==2.10.1
 protobuf==5.27.2
 pydantic==2.8.2
