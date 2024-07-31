@@ -1,5 +1,6 @@
 import uuid
 import sys
+from argparse import ArgumentParser
 import yaml
 
 _llama_key = uuid.uuid4().hex
@@ -39,14 +40,14 @@ class Config:
         ENV = {
             "QDRANT__SERVICE__API_KEY": _qdrant_key,
             "QDRANT__TELEMETRY_DISABLED": "true",
-            "QDRANT__STORAGE__STORAGE_PATH": "../../db" # dev mode default outside project folder
+            "QDRANT__STORAGE__STORAGE_PATH": "" # from config
         }
     QDRANT = _qdrant
 
     class _llama:
         HOST = "http://127.0.0.1:8080"
         PATH = _binary_path()
-        MODEL = "../../qwen2-1_5b-instruct-q4_k_m.gguf" # dev mode default outside project folder
+        MODEL = "" # from config
         KEY = _llama_key
 
         class _option:
@@ -78,19 +79,38 @@ class Config:
 
 
 if in_prod():
-    try:
-        with open("./config.yaml") as f:
-            # any of these can raise error
-            obj = yaml.safe_load(f)
-            db_path = obj["db"]["path"]
-            llm_model = obj["llm"]["model"]
+    config_path = "./config.yaml" # default same dir as executable
 
-            # reaching here means yaml object is valid, set values into Config
-            Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
-            Config.LLAMA.MODEL = llm_model
-    except IOError:
-        print("Config file not found")
-    except (yaml.YAMLError, KeyError):
-        print("Config file invalid")
+    parser = ArgumentParser()
+    parser.add_argument("-cfg", "--config", type=str, required=False)
+    arg = parser.parse_args(sys.argv)
 
+    if arg.config is not None:
+        config_path = arg.config
+else:
+    config_path = "../config.yaml" # outside project folder
+
+try:
+    with open(config_path) as f:
+        # any of these can raise error
+        obj = yaml.safe_load(f)
+        db_path = obj["db"]["path"]
+        llm_model = obj["llm"]["model"]
+
+        # reaching here means yaml object is valid, set values into Config
+        Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
+        Config.LLAMA.MODEL = llm_model
+
+except IOError:
+    print("Config file not found")
+    sys.exit()
+except (yaml.YAMLError, KeyError):
+    print("Config file invalid")
+    sys.exit()
+
+# runtime config setters
 Config.LLAMA.SHELL = Config._llama.get_shell()
+
+# argv overrides config
+# if in_prod():
+#     Config.XYZ = arg.xyz
