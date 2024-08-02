@@ -31,10 +31,8 @@ class _ArgsParser(ArgumentParser):
             raise ArgumentError(None, message)
 
 async def cli():
-    # llm should not really take more than 1-2 sec to load, but just in case
-    await asyncio.sleep(1)
-    while (await llm.ready()) == False:
-        await asyncio.sleep(1)
+    # sleep is important as immed calling db.init will lock grpc call to waiting for not-yet-started server!
+    await asyncio.sleep(3)
 
     # in case no collection exists yet
     await db.init()
@@ -127,7 +125,8 @@ async def cli():
             except _ArgsParserQuery:
                     async def coro_read():
                         ctx = await db.read(input)
-                        ans = await llm.completion(ctx, input)
+                        ans = llm.completion(ctx, input)
+
                         PrintColor.BLUE(f"{ans}\n")
                     async_task(coro_read())
 

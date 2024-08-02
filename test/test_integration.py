@@ -12,14 +12,11 @@ from app.config import Config
 import config_test
 
 _proc_db = None
-_proc_llm = None
 
 class TestIntegration(IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         global _proc_db
-        global _proc_llm
-
         _proc_db = subprocess.Popen(
             shlex.split(Config.QDRANT.SHELL),
             cwd=Config.QDRANT.PATH,
@@ -27,20 +24,11 @@ class TestIntegration(IsolatedAsyncioTestCase):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        _proc_llm = subprocess.Popen(
-            shlex.split(Config.LLAMA.SHELL),
-            cwd=Config.LLAMA.PATH,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
 
     @classmethod
     def tearDownClass(cls):
         _proc_db.send_signal(signal.SIGINT)
-        _proc_llm.send_signal(signal.SIGINT)
-
         print("\npid " + str(_proc_db.pid) + " retcode " + str(_proc_db.wait()))
-        print("pid " + str(_proc_llm.pid) + " retcode " + str(_proc_llm.wait()))
 
     @skipIf(config_test.SKIP_INT_CRUD, "")
     async def test_crud(self):
@@ -85,7 +73,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
 
         async def read() -> str:
             ctx = await db.read(query)
-            ans = await llm.completion(ctx, query)
+            ans = llm.completion(ctx, query)
             print(ans)
             return ans
 

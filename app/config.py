@@ -3,7 +3,6 @@ import sys
 from argparse import ArgumentParser
 import yaml
 
-_llama_key = uuid.uuid4().hex
 _qdrant_key = uuid.uuid4().hex
 
 def in_prod() -> bool:
@@ -45,20 +44,8 @@ class Config:
     QDRANT = _qdrant
 
     class _llama:
-        HOST = "http://127.0.0.1:8080"
-        PATH = _binary_path()
         MODEL = "" # from config
-        KEY = _llama_key
-
-        class _option:
-            TEMPERATURE = 0.1
-            # add more completion option as needed...
-        OPTION = _option
-
-        @staticmethod
-        def get_shell() -> str:
-            return f"./llama-server -m {Config.LLAMA.MODEL} -fa --log-disable --api-key {_llama_key}"
-        SHELL = "" # generate on runtime using get_shell!
+        TEMPERATURE = 0.1
     LLAMA = _llama
 
     class _chunk:
@@ -82,6 +69,7 @@ if in_prod():
     config_path = "./config.yaml" # default same dir as executable
 
     parser = ArgumentParser()
+    parser.add_argument("exe") # ./main itself, just ignore
     parser.add_argument("-cfg", "--config", type=str, required=False)
     arg = parser.parse_args(sys.argv)
 
@@ -107,9 +95,6 @@ except IOError:
 except (yaml.YAMLError, KeyError):
     print("Config file invalid")
     sys.exit()
-
-# runtime config setters
-Config.LLAMA.SHELL = Config._llama.get_shell()
 
 # argv overrides config
 # if in_prod():

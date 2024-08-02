@@ -1,9 +1,9 @@
 db:
-  # path relative from _internal folder
+  # path relative to _internal folder
   # default ../db
   path: ../db
 
 llm:
-  # path relative from _internal folder
+  # path relative to executable
   # model must be of "gguf" type
   model: ../<model>.gguf

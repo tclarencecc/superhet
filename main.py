@@ -5,8 +5,7 @@ from app.config import Config
 from app.cli import cli
 
 @extprocess([
-    (Config.QDRANT.PATH, Config.QDRANT.SHELL, Config.QDRANT.ENV),
-    (Config.LLAMA.PATH, Config.LLAMA.SHELL)
+    (Config.QDRANT.PATH, Config.QDRANT.SHELL, Config.QDRANT.ENV)
     ])
 def main():
     asyncio.run(cli())
