@@ -1,4 +1,5 @@
 from llama_cpp import Llama
+from typing import Iterable
 
 from app.config import Config
 from app.util import benchmark
@@ -18,15 +19,38 @@ Context: {ctx}
 <|im_start|>assistant
 """.format(ctx=ctx, query=query)
 
-    llm = Llama(Config.LLAMA.MODEL,
+    llm = Llama(Config.LLAMA.COMPLETION.MODEL,
         n_gpu_layers=1,
-        n_ctx=8000,
-        flash_attn=True,
+        n_ctx=0,
+        flash_attn=Config.LLAMA.COMPLETION.FLASH_ATTENTION,
         verbose=False
     )
     res = llm.create_completion(prompt,
         max_tokens=None,
-        temperature=Config.LLAMA.TEMPERATURE
+        temperature=Config.LLAMA.COMPLETION.TEMPERATURE
     )
 
     return res["choices"][0]["text"]
+
+@benchmark("llm embedding")
+def embedding(input: str | Iterable[str]) -> list[float] | tuple[list[str], list[list[float]]]:
+    llm = Llama(Config.LLAMA.EMBEDDING.MODEL,
+        n_gpu_layers=1,
+        n_ctx=0,
+        embedding=True,
+        verbose=False
+    )
+
+    if type(input) == str:
+        res = llm.create_embedding(input)
+        return res["data"][0]["embedding"]
+    else:
+        chunks = []
+        vectors = []
+
+        while (chunk := next(input, None)) is not None:
+            res = llm.create_embedding(chunk)
+            chunks.append(chunk)
+            vectors.append(res["data"][0]["embedding"])
+
+        return (chunks, vectors)

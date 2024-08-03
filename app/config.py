@@ -23,11 +23,6 @@ class _min_max:
         self.MAX = max
 
 class Config:
-    class _fastembed:
-        PATH = _binary_path()
-        TOKEN = 512
-    FASTEMBED = _fastembed
-
     class _qdrant:
         HOST = "http://localhost:6333"
         GRPC = 6334
@@ -44,12 +39,24 @@ class Config:
     QDRANT = _qdrant
 
     class _llama:
-        MODEL = "" # from config
-        TEMPERATURE = 0.1
+        class _completion:
+            MODEL = "" # from config
+            TEMPERATURE = 0.1
+            FLASH_ATTENTION = False # from config
+
+            # add more as needed...
+        COMPLETION = _completion
+
+        class _embedding:
+            # all from config
+            MODEL = ""
+            CONTEXT = 0
+            SIZE = 0
+        EMBEDDING = _embedding
     LLAMA = _llama
 
     class _chunk:
-        SIZE = _min_max(20, None) # no MAX; computed from FASTEMBED.TOKEN
+        SIZE = _min_max(20, None) # no MAX; computed from EMBEDDING.CONTEXT
         OVERLAP = _min_max(0.1, 0.25)
     CHUNK = _chunk
 
@@ -82,12 +89,25 @@ try:
     with open(config_path) as f:
         # any of these can raise error
         obj = yaml.safe_load(f)
+
         db_path = obj["db"]["path"]
-        llm_model = obj["llm"]["model"]
+
+        llm_c_model = obj["llm"]["completion"]["model"]
+        llm_c_fa = obj["llm"]["completion"]["flash_attention"]
+
+        llm_e_model = obj["llm"]["embedding"]["model"]
+        llm_e_context = obj["llm"]["embedding"]["context"]
+        llm_e_size = obj["llm"]["embedding"]["size"]
 
         # reaching here means yaml object is valid, set values into Config
         Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
-        Config.LLAMA.MODEL = llm_model
+
+        Config.LLAMA.COMPLETION.MODEL = llm_c_model
+        Config.LLAMA.COMPLETION.FLASH_ATTENTION = llm_c_fa
+
+        Config.LLAMA.EMBEDDING.MODEL = llm_e_model
+        Config.LLAMA.EMBEDDING.CONTEXT = llm_e_context
+        Config.LLAMA.EMBEDDING.SIZE = llm_e_size
 
 except IOError:
     print("Config file not found")

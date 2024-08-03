@@ -111,10 +111,11 @@ async def cli():
                 elif arg.command == _CMD_CREATE:
                     async def coro_create():
                         chunker = Chunker(arg.file, {
-                            "size": 250,
+                            "size": 256,
                             "overlap": 0.15
                         })
-                        await db.create(chunker, arg.source)
+                        docs, vecs = llm.embedding(chunker)
+                        await db.create(docs, vecs, arg.source)
                     async_task(coro_create())
 
                 elif arg.command == _CMD_DELETE:
@@ -124,7 +125,8 @@ async def cli():
 
             except _ArgsParserQuery:
                     async def coro_read():
-                        ctx = await db.read(input)
+                        vec = llm.embedding(input)
+                        ctx = await db.read(vec)
                         ans = llm.completion(ctx, input)
 
                         PrintColor.BLUE(f"{ans}\n")

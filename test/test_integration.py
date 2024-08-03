@@ -58,7 +58,8 @@ class TestIntegration(IsolatedAsyncioTestCase):
             "size": 250,
             "overlap": 0.25
         })
-        c_res = await db.create(chunker, src)
+        docs, vecs = llm.embedding(chunker)
+        c_res = await db.create(docs, vecs, src)
         self.assertTrue(c_res)
 
         print("listing..")
@@ -72,7 +73,8 @@ class TestIntegration(IsolatedAsyncioTestCase):
         self.assertTrue(inlist)
 
         async def read() -> str:
-            ctx = await db.read(query)
+            vec = llm.embedding(query)
+            ctx = await db.read(vec)
             ans = llm.completion(ctx, query)
             print(ans)
             return ans

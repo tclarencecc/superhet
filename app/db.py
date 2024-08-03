@@ -1,15 +1,10 @@
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
-from typing import Iterable
-import os
+from qdrant_client.models import Filter, FieldCondition, MatchValue, PointStruct, VectorParams, Distance
 import warnings
 import uuid
 
 from app.config import Config
 from app.util import benchmark, timestamp
-
-# qdrant fastembed reads from this env-var for embedding model path
-os.environ["FASTEMBED_CACHE_PATH"] = Config.FASTEMBED.PATH
 
 # qdrant raises 'Api key is used with an insecure connection' but theres
 # no need for tls as qdrant exists in the same machine as the python app!
@@ -24,8 +19,7 @@ class _DBClient(object):
     async def __aenter__(self) -> AsyncQdrantClient:
         self.client = AsyncQdrantClient(Config.QDRANT.HOST,
             api_key=Config.QDRANT.KEY,
-            grpc_port=Config.QDRANT.GRPC,
-            prefer_grpc=True
+            grpc_port=Config.QDRANT.GRPC
         )
         return self.client
     
@@ -36,43 +30,56 @@ async def init():
     async with _DBClient() as client:
         res = await client.collection_exists(Config.COLLECTION)
         if res == False:
+            await client.create_collection(Config.COLLECTION, VectorParams(
+                size=Config.LLAMA.EMBEDDING.SIZE,
+                distance=Distance.COSINE
+            ))
+
             # create the journal entry
-            await client.add(Config.COLLECTION, [""],
-                metadata=[{ "sources": [] }],
-                ids=[_UUID0]
-            )
+            await client.upsert(Config.COLLECTION, [PointStruct(
+                id=_UUID0,
+                payload={
+                    "sources": []
+                },
+                vector=[0.0] * Config.LLAMA.EMBEDDING.SIZE
+            )])
 
 @benchmark("db create")
-async def create(documents: Iterable[str], src: str) -> bool:
-    class MetaData:
-        def __iter__(self):
-            return self
-        def __next__(self):
-            return { "source": src }
+async def create(documents: list[str], vectors: list[list[float]], src: str) -> bool:
+    if len(documents) != len(vectors):
+        raise ValueError("db create documents & vectors have different sizes.")
+
+    points = []
+    for i in range(0, len(vectors)):
+        points.append(PointStruct(
+            id=uuid.uuid4().hex,
+            payload={
+                "source": src,
+                "document": documents[i]
+            },
+            vector=vectors[i]
+        ))
 
     async with _DBClient() as client:
-        # does repeated batch embed + upload of 32 docs per batch
-        res = await client.add(Config.COLLECTION, documents, metadata=MetaData())
+        await client.upsert(Config.COLLECTION, points)
 
-    if len(res) > 0:
-        return await _update_journal(src, len(res)) # TODO rollback needed if failed?
-
-    return False
+    return await _update_journal(src, len(points)) # TODO rollback needed if failed?
 
 @benchmark("db read")
-async def read(query: str) -> str:
-    if query == "":
-        raise ValueError("db.read undefined query.")
-
+async def read(vector: list[float]) -> str:
     async with _DBClient() as client:
-        hits = await client.query(Config.COLLECTION, query, limit=Config.QDRANT.READ_LIMIT)
+        hits = await client.search(Config.COLLECTION, vector,
+            limit=Config.QDRANT.READ_LIMIT,
+            score_threshold=0.65
+        )
 
     ret = ""
     for hit in hits:
         if ret != "":
             ret += "\n"
-        if hit.metadata.get("document") is not None:
-            ret += hit.metadata["document"]
+
+        if hit.payload.get("document") is not None:
+            ret += hit.payload["document"]
 
     return ret.strip()
 

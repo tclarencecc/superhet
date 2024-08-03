@@ -99,10 +99,10 @@ def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool)
     min_cs = Config.CHUNK.SIZE.MIN
     if alphabet:
         # assuming a generous 2 token-per-word
-        max_cs = int(Config.FASTEMBED.TOKEN / 2)
+        max_cs = int(Config.LLAMA.EMBEDDING.CONTEXT / 2)
     else:
         # multiple chars can be just 1 token; assume worst case 1 token-per-char with small allowance
-        max_cs = int(Config.FASTEMBED.TOKEN * 0.8)
+        max_cs = int(Config.LLAMA.EMBEDDING.CONTEXT * 0.8)
         
     if chunk_size < min_cs or chunk_size > max_cs:
         raise ValueError(f"chunker._sliding_window chunk_size should be between {min_cs} and {max_cs}.")
