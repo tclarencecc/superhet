@@ -114,8 +114,8 @@ async def cli():
                             "size": 256,
                             "overlap": 0.15
                         })
-                        docs, vecs = llm.embedding(chunker)
-                        await db.create(docs, vecs, arg.source)
+                        embed = llm.Embedding(chunker)
+                        await db.create(embed, arg.source)
                     async_task(coro_create())
 
                 elif arg.command == _CMD_DELETE:
@@ -125,7 +125,7 @@ async def cli():
 
             except _ArgsParserQuery:
                     async def coro_read():
-                        vec = llm.embedding(input)
+                        vec = llm.Embedding.create(input)
                         ctx = await db.read(vec)
                         ans = llm.completion(ctx, input)
 

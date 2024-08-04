@@ -2,6 +2,7 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue, PointStruct, VectorParams, Distance
 import warnings
 import uuid
+from typing import Iterable
 
 from app.config import Config
 from app.util import benchmark, timestamp
@@ -45,25 +46,32 @@ async def init():
             )])
 
 @benchmark("db create")
-async def create(documents: list[str], vectors: list[list[float]], src: str) -> bool:
-    if len(documents) != len(vectors):
-        raise ValueError("db create documents & vectors have different sizes.")
-
-    points = []
-    for i in range(0, len(vectors)):
-        points.append(PointStruct(
-            id=uuid.uuid4().hex,
-            payload={
-                "source": src,
-                "document": documents[i]
-            },
-            vector=vectors[i]
-        ))
+async def create(input: Iterable[dict], src: str) -> bool:
+    """
+    dict attributes:\n
+    len: int - length of list (documents / vectors)\n
+    documents: list[str] - list of text chunks\n
+    vectors: list[list[float]] - list of vectors (list[float])\n
+    """
+    count = 0
 
     async with _DBClient() as client:
-        await client.upsert(Config.COLLECTION, points)
+        while (dv := next(input, None)) is not None:
+            points = []
+            for i in range(dv["len"]):
+                points.append(PointStruct(
+                    id=uuid.uuid4().hex,
+                    payload={
+                        "source": src,
+                        "document": dv["documents"][i]
+                    },
+                    vector=dv["vectors"][i]
+                ))
 
-    return await _update_journal(src, len(points)) # TODO rollback needed if failed?
+            await client.upsert(Config.COLLECTION, points)
+            count += len(points)
+
+    return await _update_journal(src, count) # TODO rollback needed if failed?
 
 @benchmark("db read")
 async def read(vector: list[float]) -> str:

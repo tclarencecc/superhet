@@ -1,8 +1,12 @@
-from llama_cpp import Llama
-from typing import Iterable
+from llama_cpp import Llama, CreateEmbeddingResponse
+from typing import Iterable, Callable
 
 from app.config import Config
 from app.util import benchmark
+
+# https://onnxruntime.ai/_app/immutable/assets/Phi2_Int4_TokenGenerationTP.ab4c4b44.png
+# at batch size 4, llama cpp embedding approaches speed of onnxruntime (1.14x)
+_BATCH_SIZE = 4
 
 @benchmark("llm completion")
 def completion(ctx: str, query: str) -> str:
@@ -32,25 +36,56 @@ Context: {ctx}
 
     return res["choices"][0]["text"]
 
-@benchmark("llm embedding")
-def embedding(input: str | Iterable[str]) -> list[float] | tuple[list[str], list[list[float]]]:
-    llm = Llama(Config.LLAMA.EMBEDDING.MODEL,
-        n_gpu_layers=1,
-        n_ctx=0,
-        embedding=True,
-        verbose=False
-    )
+class Embedding:
+    @staticmethod
+    def _creator() -> Callable[[str | list[str], str | None], CreateEmbeddingResponse]:
+        llm = Llama(Config.LLAMA.EMBEDDING.MODEL,
+            n_gpu_layers=1,
+            n_ctx=0,
+            embedding=True,
+            verbose=False
+        )
 
-    if type(input) == str:
-        res = llm.create_embedding(input)
+        return llm.create_embedding
+    
+    @staticmethod
+    def create(input: str) -> list[float]:
+        create_embedding = Embedding._creator()
+        res = create_embedding(input)
         return res["data"][0]["embedding"]
-    else:
+
+    def __init__(self, input: Iterable[str]):
+        self._iterable = input
+        self._create_embedding = Embedding._creator()
+        self._eof = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._eof:
+            raise StopIteration
+        
         chunks = []
         vectors = []
 
-        while (chunk := next(input, None)) is not None:
-            res = llm.create_embedding(chunk)
+        for _ in range(_BATCH_SIZE):
+            chunk = next(self._iterable, None)
+            if chunk is None:
+                self._eof = True
+                break
+
+            res = self._create_embedding(chunk)
             chunks.append(chunk)
             vectors.append(res["data"][0]["embedding"])
 
-        return (chunks, vectors)
+        # handle case where current "next" just reached the end and had nothing to return
+        if len(vectors) == 0 and self._eof:
+            raise StopIteration
+
+        return {
+            "documents": chunks,
+            "vectors": vectors,
+            "len": len(vectors)
+        }
+    

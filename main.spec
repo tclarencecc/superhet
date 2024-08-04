@@ -9,12 +9,10 @@ a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[
-        (".venv/lib/python3.12/site-packages/llama_cpp/lib/libggml.dylib", "."),
         (".venv/lib/python3.12/site-packages/llama_cpp/lib/libllama.dylib", "."),
-        (".venv/lib/python3.12/site-packages/llama_cpp/lib/libllava.dylib", ".")
+        # (".venv/lib/python3.12/site-packages/llama_cpp/lib/libggml.dylib", "."), # not sure if really needed
     ],
     datas=[
-        ("bin/fast-bge-small-en", "fast-bge-small-en"), # if commented-out, will be downloaded from hf
         ("bin/qdrant", "."),
         ("config.yaml", ".")
     ],
