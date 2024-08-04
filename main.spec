@@ -9,8 +9,8 @@ a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[
-        (".venv/lib/python3.12/site-packages/llama_cpp/lib/libllama.dylib", "."),
-        # (".venv/lib/python3.12/site-packages/llama_cpp/lib/libggml.dylib", "."), # not sure if really needed
+        (".venv/lib/python3.12/site-packages/llama_cpp/lib/libllama.dylib", "llama_cpp/lib"),
+        (".venv/lib/python3.12/site-packages/llama_cpp/lib/libggml.dylib", "llama_cpp/lib")
     ],
     datas=[
         ("bin/qdrant", "."),
