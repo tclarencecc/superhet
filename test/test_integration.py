@@ -28,6 +28,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
             stderr=subprocess.DEVNULL
         )
         http = AsyncClient()
+        db.http_client(http)
 
     @classmethod
     def tearDownClass(cls):
@@ -40,9 +41,6 @@ class TestIntegration(IsolatedAsyncioTestCase):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
 
-        # sleep to let db init
-        await asyncio.sleep(3)
-
         collection = "_test_collection_"
         src="python"
         query = "how does python manage memory?"
@@ -53,7 +51,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         # inconsistent search behavior!
         print("\ninit..")
         Config.COLLECTION = collection
-        await db.init(http)
+        await db.init()
 
         print("creating..")
         chunker = Chunker("./test/t1.txt", {
@@ -61,11 +59,11 @@ class TestIntegration(IsolatedAsyncioTestCase):
             "overlap": 0.25
         })
         embed = llm.Embedding(chunker)
-        c_res = await db.create(embed, src, http)
+        c_res = await db.create(embed, src)
         self.assertTrue(c_res)
 
         print("listing..")
-        list = await db.list(http)
+        list = await db.list()
         inlist = False
         for li in list:
             if li["name"] == src:
@@ -76,7 +74,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
 
         async def read() -> str:
             vec = llm.Embedding.create(query)
-            ctx = await db.read(vec, http)
+            ctx = await db.read(vec)
             ans = llm.completion(ctx, query)
             print(ans)
             return ans
@@ -86,13 +84,13 @@ class TestIntegration(IsolatedAsyncioTestCase):
         self.assertTrue(propans != nrf)
 
         print("deleting..")
-        self.assertTrue(await db.delete(src, http))
+        self.assertTrue(await db.delete(src))
 
         print("read non-existing..")
         nonex = await read()
         self.assertTrue(nonex == nrf)
 
         print("dropping..")
-        await db.drop(collection, http)
+        await db.drop(collection)
 
         await http.aclose()

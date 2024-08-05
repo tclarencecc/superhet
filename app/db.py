@@ -1,7 +1,9 @@
-from httpx import AsyncClient
+from httpx import AsyncClient, ConnectError
 import uuid
 from typing import Iterable
 from enum import Enum
+import sys
+import asyncio
 
 from app.config import Config
 from app.util import timestamp, benchmark
@@ -16,7 +18,13 @@ class _Meth(Enum):
     PUT = 3
     DEL = 4
 
-async def _http(meth: _Meth, url: str, json: dict | None, client: AsyncClient) -> any:
+_client: AsyncClient = None
+
+def http_client(input: AsyncClient):
+    global _client
+    _client = input
+
+async def _http(meth: _Meth, url: str, json: dict | None) -> any:
     if url.startswith("http://") == False:
         # is relative path, build full path here
         url = f"{Config.QDRANT.HOST}/collections/{Config.COLLECTION.replace(" ", "%20")}{url}"
@@ -24,22 +32,31 @@ async def _http(meth: _Meth, url: str, json: dict | None, client: AsyncClient) -
     headers = { "api-key": Config.QDRANT.KEY }
     
     if meth == _Meth.GET:
-        res = await client.get(url, headers=headers)
+        res = await _client.get(url, headers=headers)
     elif meth == _Meth.POST:
-        res = await client.post(url, headers=headers, json=json)
+        res = await _client.post(url, headers=headers, json=json)
     elif meth == _Meth.PUT:
         headers["Content-Type"] = "application/json"
-        res = await client.put(url, headers=headers, json=json)
+        res = await _client.put(url, headers=headers, json=json)
     elif meth == _Meth.DEL:
-        res = await client.delete(url, headers=headers)
+        res = await _client.delete(url, headers=headers)
 
     if res.status_code == 200:
         return res.json()["result"]
     else:
         raise DatabaseError(f"Qdrant server returned http error: {res.status_code}")
 
-async def init(client: AsyncClient):
-    res = await _http(_Meth.GET, "/exists", None, client)
+async def init():
+    for i in range(5): # 5 retries at 1 sec interval
+        try:
+            res = await _http(_Meth.GET, "/exists", None)
+            break
+        except ConnectError:
+            if i == 4:
+                print("Unable to connect to Qdrant server.")
+                sys.exit()
+            else:
+                await asyncio.sleep(1)
     
     if res["exists"] == False:
         await _http(_Meth.PUT, "", {
@@ -47,7 +64,7 @@ async def init(client: AsyncClient):
                 "size": Config.LLAMA.EMBEDDING.SIZE,
                 "distance": "Cosine"
             }
-        }, client)
+        })
 
         await _http(_Meth.PUT, "/points?wait=true", {
             "points": [{
@@ -57,10 +74,10 @@ async def init(client: AsyncClient):
                     "sources": []
                 }
             }]
-        }, client)
+        })
 
 @benchmark("db create")
-async def create(input: Iterable[dict], src: str, client: AsyncClient) -> bool:
+async def create(input: Iterable[dict], src: str) -> bool:
     """
     dict attributes:\n
     len: int - length of list (documents / vectors)\n
@@ -83,19 +100,19 @@ async def create(input: Iterable[dict], src: str, client: AsyncClient) -> bool:
 
         await _http(_Meth.PUT, "/points?wait=true", {
             "points": points
-        }, client)
+        })
 
         count += len(points)
 
-    return await _update_journal(src, count, client) # TODO rollback needed if failed?
+    return await _update_journal(src, count) # TODO rollback needed if failed?
 
-async def read(vector: list[float], client: AsyncClient) -> str:
+async def read(vector: list[float]) -> str:
     res = await _http(_Meth.POST, "/points/search", {
         "vector": vector,
         "with_payload": True,
         "limit": Config.QDRANT.READ_LIMIT,
         "score_threshold": 0.65
-    }, client)
+    })
 
     ret = ""
     for hit in res:
@@ -106,19 +123,19 @@ async def read(vector: list[float], client: AsyncClient) -> str:
 
     return ret.strip() # in case some document are actually ""
 
-async def list(client: AsyncClient) -> list[any]:
+async def list() -> list[any]:
     """
     returns: [{ name, count, timestamp }]
     """
     res = await _http(_Meth.POST, "/points", {
         "ids": [_UUID0],
         "with_payload": True
-    }, client)
+    })
 
     return res[0]["payload"]["sources"]
 
 @benchmark("db delete")
-async def delete(src: str, client: AsyncClient) -> bool:
+async def delete(src: str) -> bool:
     await _http(_Meth.POST, "/points/delete?wait=true", {
         "filter": {
             "must": [{
@@ -128,16 +145,16 @@ async def delete(src: str, client: AsyncClient) -> bool:
                 }
             }]
         }
-    }, client)
+    })
 
-    return await _update_journal(src, -1, client) # TODO rollback needed if failed?
+    return await _update_journal(src, -1) # TODO rollback needed if failed?
     
-async def _update_journal(src: str, count: int, client: AsyncClient) -> bool:
+async def _update_journal(src: str, count: int) -> bool:
     """
     count: > 0, add entry to journal. duplicate src name is allowed\n
     0 or -int, delete ALL entries with src name
     """
-    sources = await list(client)
+    sources = await list()
 
     if count > 0:
         sources.append({
@@ -157,10 +174,10 @@ async def _update_journal(src: str, count: int, client: AsyncClient) -> bool:
             "sources": sources
         },
         "points": [_UUID0]
-    }, client)
+    })
 
     return res["status"] == "completed"
 
-async def drop(collection: str, client: AsyncClient):
+async def drop(collection: str):
     # use full path as collection name is diff!
-    await _http(_Meth.DEL, f"{Config.QDRANT.HOST}/collections/{collection}", None, client)
+    await _http(_Meth.DEL, f"{Config.QDRANT.HOST}/collections/{collection}", None)
