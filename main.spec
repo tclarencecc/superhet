@@ -14,7 +14,7 @@ a = Analysis(
     ],
     datas=[
         ("bin/qdrant", "."),
-        ("config.yaml", ".")
+        ("config.toml", ".")
     ],
     hiddenimports=[],
     hookspath=[],
@@ -53,7 +53,7 @@ coll = COLLECT(
     name=name,
 )
 
-shutil.move(f"./dist/{name}/_internal/config.yaml", f"./dist/{name}/config.yaml")
+shutil.move(f"./dist/{name}/_internal/config.toml", f"./dist/{name}/config.toml")
 
 # print("----- INFO: Building tar.gz archive")
 # src = f"./dist/{name}"

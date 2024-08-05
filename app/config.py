@@ -1,7 +1,7 @@
 import uuid
 import sys
 from argparse import ArgumentParser
-import yaml
+import tomllib
 
 _qdrant_key = uuid.uuid4().hex
 
@@ -14,9 +14,6 @@ def _select(dev: str, prod: str) -> str:
     else:
         return dev
     
-def _binary_path() -> str:
-    return _select("./bin", "./_internal")
-
 class _min_max:
     def __init__(self, min, max): # no type; can be int or float
         self.MIN = min
@@ -25,8 +22,7 @@ class _min_max:
 class Config:
     class _qdrant:
         HOST = "http://localhost:6333"
-        GRPC = 6334
-        PATH = _binary_path()
+        PATH = _select("./bin", "./_internal")
         SHELL = "./qdrant"
         KEY = _qdrant_key
         READ_LIMIT = 1
@@ -34,7 +30,8 @@ class Config:
         ENV = {
             "QDRANT__SERVICE__API_KEY": _qdrant_key,
             "QDRANT__TELEMETRY_DISABLED": "true",
-            "QDRANT__STORAGE__STORAGE_PATH": "" # from config
+            "QDRANT__STORAGE__STORAGE_PATH": "", # from config
+            "QDRANT__STORAGE__SNAPSHOTS_PATH": "" # derived from STORAGE_PATH down the line
         }
     QDRANT = _qdrant
 
@@ -73,7 +70,7 @@ class Config:
 
 
 if in_prod():
-    config_path = "./config.yaml" # default same dir as executable
+    config_path = "./config.toml" # default same dir as executable
 
     parser = ArgumentParser()
     parser.add_argument("exe") # ./main itself, just ignore
@@ -83,12 +80,12 @@ if in_prod():
     if arg.config is not None:
         config_path = arg.config
 else:
-    config_path = "../dev.yaml" # outside project folder
+    config_path = "../dev.toml" # outside project folder
 
 try:
-    with open(config_path) as f:
+    with open(config_path, "rb") as f:
         # any of these can raise error
-        obj = yaml.safe_load(f)
+        obj = tomllib.load(f)
 
         db_path = obj["db"]["path"]
 
@@ -101,6 +98,7 @@ try:
 
         # reaching here means yaml object is valid, set values into Config
         Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
+        Config.QDRANT.ENV["QDRANT__STORAGE__SNAPSHOTS_PATH"] = f"{db_path}/snapshots"
 
         Config.LLAMA.COMPLETION.MODEL = llm_c_model
         Config.LLAMA.COMPLETION.FLASH_ATTENTION = llm_c_fa
@@ -112,7 +110,7 @@ try:
 except IOError:
     print("Config file not found")
     sys.exit()
-except (yaml.YAMLError, KeyError):
+except (tomllib.TOMLDecodeError, KeyError):
     print("Config file invalid")
     sys.exit()
 
