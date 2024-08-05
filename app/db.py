@@ -1,52 +1,66 @@
-from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue, PointStruct, VectorParams, Distance
-import warnings
+from httpx import AsyncClient
 import uuid
 from typing import Iterable
+from enum import Enum
 
 from app.config import Config
-from app.util import benchmark, timestamp
-
-# qdrant raises 'Api key is used with an insecure connection' but theres
-# no need for tls as qdrant exists in the same machine as the python app!
-warnings.filterwarnings("ignore", module="qdrant_client")
+from app.util import timestamp, benchmark
 
 _UUID0 = uuid.UUID(int=0).hex
 
-class _DBClient(object):
-    def __init__(self):
-        self.client: AsyncQdrantClient = None
+class DatabaseError(Exception): ...
 
-    async def __aenter__(self) -> AsyncQdrantClient:
-        self.client = AsyncQdrantClient(Config.QDRANT.HOST,
-            api_key=Config.QDRANT.KEY,
-            grpc_port=Config.QDRANT.GRPC
-        )
-        return self.client
+class _Meth(Enum):
+    GET = 1
+    POST = 2
+    PUT = 3
+    DEL = 4
+
+async def _http(meth: _Meth, url: str, json: dict | None, client: AsyncClient) -> any:
+    if url.startswith("http://") == False:
+        # is relative path, build full path here
+        url = f"{Config.QDRANT.HOST}/collections/{Config.COLLECTION.replace(" ", "%20")}{url}"
+
+    headers = { "api-key": Config.QDRANT.KEY }
     
-    async def __aexit__(self, type, value, traceback):
-        await self.client.close()
+    if meth == _Meth.GET:
+        res = await client.get(url, headers=headers)
+    elif meth == _Meth.POST:
+        res = await client.post(url, headers=headers, json=json)
+    elif meth == _Meth.PUT:
+        headers["Content-Type"] = "application/json"
+        res = await client.put(url, headers=headers, json=json)
+    elif meth == _Meth.DEL:
+        res = await client.delete(url, headers=headers)
 
-async def init():
-    async with _DBClient() as client:
-        res = await client.collection_exists(Config.COLLECTION)
-        if res == False:
-            await client.create_collection(Config.COLLECTION, VectorParams(
-                size=Config.LLAMA.EMBEDDING.SIZE,
-                distance=Distance.COSINE
-            ))
+    if res.status_code == 200:
+        return res.json()["result"]
+    else:
+        raise DatabaseError(f"Qdrant server returned http error: {res.status_code}")
 
-            # create the journal entry
-            await client.upsert(Config.COLLECTION, [PointStruct(
-                id=_UUID0,
-                payload={
+async def init(client: AsyncClient):
+    res = await _http(_Meth.GET, "/exists", None, client)
+    
+    if res["exists"] == False:
+        await _http(_Meth.PUT, "", {
+            "vectors": {
+                "size": Config.LLAMA.EMBEDDING.SIZE,
+                "distance": "Cosine"
+            }
+        }, client)
+
+        await _http(_Meth.PUT, "/points?wait=true", {
+            "points": [{
+                "id": _UUID0,
+                "vector": [0.0] * Config.LLAMA.EMBEDDING.SIZE,
+                "payload": {
                     "sources": []
-                },
-                vector=[0.0] * Config.LLAMA.EMBEDDING.SIZE
-            )])
+                }
+            }]
+        }, client)
 
 @benchmark("db create")
-async def create(input: Iterable[dict], src: str) -> bool:
+async def create(input: Iterable[dict], src: str, client: AsyncClient) -> bool:
     """
     dict attributes:\n
     len: int - length of list (documents / vectors)\n
@@ -55,95 +69,98 @@ async def create(input: Iterable[dict], src: str) -> bool:
     """
     count = 0
 
-    async with _DBClient() as client:
-        while (dv := next(input, None)) is not None:
-            points = []
-            for i in range(dv["len"]):
-                points.append(PointStruct(
-                    id=uuid.uuid4().hex,
-                    payload={
-                        "source": src,
-                        "document": dv["documents"][i]
-                    },
-                    vector=dv["vectors"][i]
-                ))
+    while (dv := next(input, None)) is not None:
+        points = []
+        for i in range(dv["len"]):
+            points.append({
+                "id": uuid.uuid4().hex,
+                "vector": dv["vectors"][i],
+                "payload": {
+                    "source": src,
+                    "document": dv["documents"][i]
+                }
+            })
 
-            await client.upsert(Config.COLLECTION, points)
-            count += len(points)
+        await _http(_Meth.PUT, "/points?wait=true", {
+            "points": points
+        }, client)
 
-    return await _update_journal(src, count) # TODO rollback needed if failed?
+        count += len(points)
 
-@benchmark("db read")
-async def read(vector: list[float]) -> str:
-    async with _DBClient() as client:
-        hits = await client.search(Config.COLLECTION, vector,
-            limit=Config.QDRANT.READ_LIMIT,
-            score_threshold=0.65
-        )
+    return await _update_journal(src, count, client) # TODO rollback needed if failed?
+
+async def read(vector: list[float], client: AsyncClient) -> str:
+    res = await _http(_Meth.POST, "/points/search", {
+        "vector": vector,
+        "with_payload": True,
+        "limit": Config.QDRANT.READ_LIMIT,
+        "score_threshold": 0.65
+    }, client)
 
     ret = ""
-    for hit in hits:
-        if ret != "":
-            ret += "\n"
+    for hit in res:
+        if hit["payload"].get("document") is not None:
+            if ret != "":
+                ret += "\n"
+            ret += hit["payload"]["document"]
 
-        if hit.payload.get("document") is not None:
-            ret += hit.payload["document"]
+    return ret.strip() # in case some document are actually ""
 
-    return ret.strip()
-
-@benchmark("db list")
-async def list() -> list[any]:
+async def list(client: AsyncClient) -> list[any]:
     """
     returns: [{ name, count, timestamp }]
     """
-    async with _DBClient() as client:
-        res = await client.retrieve(Config.COLLECTION, [_UUID0], with_vectors=False)
-        return res[0].payload["sources"]
-    
-@benchmark("db delete")
-async def delete(src: str) -> bool:
-    async with _DBClient() as client:
-        res = await client.delete(Config.COLLECTION, points_selector=Filter(
-            must=[FieldCondition(
-                key="source",
-                match=MatchValue(value=src)
-            )]
-        ))
+    res = await _http(_Meth.POST, "/points", {
+        "ids": [_UUID0],
+        "with_payload": True
+    }, client)
 
-    if res.status.value == "completed":
-        return await _update_journal(src, -1) # TODO rollback needed if failed?
+    return res[0]["payload"]["sources"]
+
+@benchmark("db delete")
+async def delete(src: str, client: AsyncClient) -> bool:
+    await _http(_Meth.POST, "/points/delete?wait=true", {
+        "filter": {
+            "must": [{
+                "key": "source",
+                "match": {
+                    "value": src
+                }
+            }]
+        }
+    }, client)
+
+    return await _update_journal(src, -1, client) # TODO rollback needed if failed?
     
-    return False
-    
-async def _update_journal(src: str, count: int) -> bool:
+async def _update_journal(src: str, count: int, client: AsyncClient) -> bool:
     """
     count: > 0, add entry to journal. duplicate src name is allowed\n
     0 or -int, delete ALL entries with src name
     """
-    async with _DBClient() as client:
-        res = await client.retrieve(Config.COLLECTION, [_UUID0], with_vectors=False)
-        sources = res[0].payload["sources"]
+    sources = await list(client)
 
-        if count > 0:
-            sources.append({
-                "name": src,
-                "count": count,
-                "timestamp": timestamp()
-            })
-        else:
-            ns = []
-            for s in sources:
-                if s["name"] != src: # filter out all (duplicated) entries
-                    ns.append(s)
-            sources = ns
+    if count > 0:
+        sources.append({
+            "name": src,
+            "count": count,
+            "timestamp": timestamp()
+        })
+    else:
+        ns = []
+        for s in sources:
+            if s["name"] != src: # filter out all (duplicated) entries
+                ns.append(s)
+        sources = ns
 
-        res = await client.set_payload(Config.COLLECTION,
-            payload={ "sources": sources },
-            points=[_UUID0]
-        )
-        return res.status.value == "completed"
+    res = await _http(_Meth.POST, "/points/payload?wait=true", {
+        "payload": {
+            "sources": sources
+        },
+        "points": [_UUID0]
+    }, client)
 
-@benchmark("db drop")
-async def drop(collection: str) -> bool:
-    async with _DBClient() as client:
-        return await client.delete_collection(collection)
+    return res["status"] == "completed"
+
+async def drop(collection: str, client: AsyncClient):
+    # use full path as collection name is diff!
+    await _http(_Meth.DEL, f"{Config.QDRANT.HOST}/collections/{collection}", None, client)

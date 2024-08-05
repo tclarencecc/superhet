@@ -2,8 +2,8 @@ from unittest import IsolatedAsyncioTestCase, skipIf
 import subprocess
 import shlex
 import signal
-import warnings
 import asyncio
+from httpx import AsyncClient
 
 import app.db as db
 import app.llm as llm
@@ -11,35 +11,37 @@ from app.chunker import Chunker
 from app.config import Config
 import config_test
 
-_proc_db = None
+proc_db = None
+http: AsyncClient = None
 
 class TestIntegration(IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
-        global _proc_db
-        _proc_db = subprocess.Popen(
+        global proc_db
+        global http
+
+        proc_db = subprocess.Popen(
             shlex.split(Config.QDRANT.SHELL),
             cwd=Config.QDRANT.PATH,
             env=Config.QDRANT.ENV,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
+        http = AsyncClient()
 
     @classmethod
     def tearDownClass(cls):
-        _proc_db.send_signal(signal.SIGINT)
-        print("\npid " + str(_proc_db.pid) + " retcode " + str(_proc_db.wait()))
+        proc_db.send_signal(signal.SIGINT)
+        retcode = proc_db.wait()
+        print(f"\npid {proc_db.pid} retcode {retcode}")
 
     @skipIf(config_test.SKIP_INT_CRUD, "")
     async def test_crud(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
 
-        # block 'Api key is used with an insecure connection'
-        warnings.filterwarnings("ignore", module="qdrant_client")
-
-        # sleep to let db & llm complete init
-        await asyncio.sleep(4)
+        # sleep to let db init
+        await asyncio.sleep(3)
 
         collection = "_test_collection_"
         src="python"
@@ -51,7 +53,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         # inconsistent search behavior!
         print("\ninit..")
         Config.COLLECTION = collection
-        await db.init()
+        await db.init(http)
 
         print("creating..")
         chunker = Chunker("./test/t1.txt", {
@@ -59,11 +61,11 @@ class TestIntegration(IsolatedAsyncioTestCase):
             "overlap": 0.25
         })
         embed = llm.Embedding(chunker)
-        c_res = await db.create(embed, src)
+        c_res = await db.create(embed, src, http)
         self.assertTrue(c_res)
 
         print("listing..")
-        list = await db.list()
+        list = await db.list(http)
         inlist = False
         for li in list:
             if li["name"] == src:
@@ -74,7 +76,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
 
         async def read() -> str:
             vec = llm.Embedding.create(query)
-            ctx = await db.read(vec)
+            ctx = await db.read(vec, http)
             ans = llm.completion(ctx, query)
             print(ans)
             return ans
@@ -84,11 +86,13 @@ class TestIntegration(IsolatedAsyncioTestCase):
         self.assertTrue(propans != nrf)
 
         print("deleting..")
-        self.assertTrue(await db.delete(src))
+        self.assertTrue(await db.delete(src, http))
 
         print("read non-existing..")
         nonex = await read()
         self.assertTrue(nonex == nrf)
 
         print("dropping..")
-        await db.drop(collection)
+        await db.drop(collection, http)
+
+        await http.aclose()

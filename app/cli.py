@@ -2,6 +2,7 @@ import asyncio
 from argparse import ArgumentParser, ArgumentError
 import shlex
 import sys
+from httpx import AsyncClient
 
 from app.chunker import Chunker
 import app.db as db
@@ -31,106 +32,106 @@ class _ArgsParser(ArgumentParser):
             raise ArgumentError(None, message)
 
 async def cli():
-    # sleep is important as immed calling db.init will lock grpc call to waiting for not-yet-started server!
-    await asyncio.sleep(3)
+    async with AsyncClient() as http:
+        # sleep is important as immed calling db.init will lock grpc call to waiting for not-yet-started server!
+        await asyncio.sleep(3)
 
-    # in case no collection exists yet
-    await db.init()
+        # in case no collection exists yet
+        await db.init(http)
 
-    loop = asyncio.get_event_loop()
-    reader = asyncio.StreamReader()
-    await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
-    
-    PrintColor.BLUE(f"\nAsk me anything or {_CMD_HELP} for options")
-
-    parser = _ArgsParser(
-        prog="root",
-        add_help=False,
-        usage="""
-  {list}                                List all sources
-  {create} FILE -s NAME                 Create data from FILE
-    -s NAME, --source NAME             Group under this source
-  {delete} SOURCE                       Delete all data with SOURCE group""".format(
-        list=_CMD_LIST,
-        create=_CMD_CREATE,
-        delete=_CMD_DELETE
-        )
-    )
-    
-    sub = parser.add_subparsers(dest="command")
-
-    # help
-    sub.add_parser(_CMD_HELP)
-
-    # list
-    sub.add_parser(_CMD_LIST)
-
-    # create FILE -s SOURCE
-    create_parser = sub.add_parser(_CMD_CREATE)
-    create_parser.add_argument("file")
-    create_parser.add_argument("-s", "--source", type=str, required=True)
-
-    # delete SOURCE
-    delete_parser = sub.add_parser(_CMD_DELETE)
-    delete_parser.add_argument("source")
-    
-    lock = False # cli edit lock flag
-
-    def callback():
-        nonlocal lock
-        lock = False
-
-    def async_task(coro):
-        nonlocal lock
-        lock = True
-        new_async_task(coro, callback)
-
-    while True:
-        bytes = await reader.read(500)
+        loop = asyncio.get_event_loop()
+        reader = asyncio.StreamReader()
+        await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
         
-        # while cli is locked, ignore all user inputs
-        if lock == False:
-            input = bytes.decode("utf-8").replace("\n", "")
+        PrintColor.BLUE(f"\nAsk me anything or {_CMD_HELP} for options")
 
-            try:
-                arg = parser.parse_args(shlex.split(input))
-                if arg.command == _CMD_HELP:
-                    parser.print_usage()
+        parser = _ArgsParser(
+            prog="root",
+            add_help=False,
+            usage="""
+    {list}                                List all sources
+    {create} FILE -s NAME                 Create data from FILE
+      -s NAME, --source NAME             Group under this source
+    {delete} SOURCE                       Delete all data with SOURCE group""".format(
+            list=_CMD_LIST,
+            create=_CMD_CREATE,
+            delete=_CMD_DELETE
+        ))
+        
+        sub = parser.add_subparsers(dest="command")
 
-                elif arg.command == _CMD_LIST:
-                    async def coro_list():
-                        list = await db.list()
+        # help
+        sub.add_parser(_CMD_HELP)
 
-                        print(f"total {len(list)}")
-                        print(f"{'source':<20}  {'rows':>5}  created")
-                        for li in list:
-                            print(f"{li["name"]:<20}  {li["count"]:>5}  {li["timestamp"]}")
+        # list
+        sub.add_parser(_CMD_LIST)
 
-                    async_task(coro_list())
-                    
-                elif arg.command == _CMD_CREATE:
-                    async def coro_create():
-                        chunker = Chunker(arg.file, {
-                            "size": 256,
-                            "overlap": 0.15
-                        })
-                        embed = llm.Embedding(chunker)
-                        await db.create(embed, arg.source)
-                    async_task(coro_create())
+        # create FILE -s SOURCE
+        create_parser = sub.add_parser(_CMD_CREATE)
+        create_parser.add_argument("file")
+        create_parser.add_argument("-s", "--source", type=str, required=True)
 
-                elif arg.command == _CMD_DELETE:
-                    async def coro_delete():
-                        await db.delete(arg.source)
-                    async_task(coro_delete())
+        # delete SOURCE
+        delete_parser = sub.add_parser(_CMD_DELETE)
+        delete_parser.add_argument("source")
+        
+        lock = False # cli edit lock flag
 
-            except _ArgsParserQuery:
-                    async def coro_read():
-                        vec = llm.Embedding.create(input)
-                        ctx = await db.read(vec)
-                        ans = llm.completion(ctx, input)
+        def callback():
+            nonlocal lock
+            lock = False
 
-                        PrintColor.BLUE(f"{ans}\n")
-                    async_task(coro_read())
+        def async_task(coro):
+            nonlocal lock
+            lock = True
+            new_async_task(coro, callback)
 
-            except ArgumentError as e:
-                print(e.message)
+        while True:
+            bytes = await reader.read(500)
+            
+            # while cli is locked, ignore all user inputs
+            if lock == False:
+                input = bytes.decode("utf-8").replace("\n", "")
+
+                try:
+                    arg = parser.parse_args(shlex.split(input))
+                    if arg.command == _CMD_HELP:
+                        parser.print_usage()
+
+                    elif arg.command == _CMD_LIST:
+                        async def coro_list():
+                            list = await db.list(http)
+
+                            print(f"total {len(list)}")
+                            print(f"{'source':<20}  {'rows':>5}  created")
+                            for li in list:
+                                print(f"{li["name"]:<20}  {li["count"]:>5}  {li["timestamp"]}")
+
+                        async_task(coro_list())
+                        
+                    elif arg.command == _CMD_CREATE:
+                        async def coro_create():
+                            chunker = Chunker(arg.file, {
+                                "size": 256,
+                                "overlap": 0.15
+                            })
+                            embed = llm.Embedding(chunker)
+                            await db.create(embed, arg.source, http)
+                        async_task(coro_create())
+
+                    elif arg.command == _CMD_DELETE:
+                        async def coro_delete():
+                            await db.delete(arg.source, http)
+                        async_task(coro_delete())
+
+                except _ArgsParserQuery:
+                        async def coro_read():
+                            vec = llm.Embedding.create(input)
+                            ctx = await db.read(vec, http)
+                            ans = llm.completion(ctx, input)
+
+                            PrintColor.BLUE(f"{ans}\n")
+                        async_task(coro_read())
+
+                except ArgumentError as e:
+                    print(e.message)

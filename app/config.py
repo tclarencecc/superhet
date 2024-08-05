@@ -83,7 +83,7 @@ if in_prod():
     if arg.config is not None:
         config_path = arg.config
 else:
-    config_path = "../config.yaml" # outside project folder
+    config_path = "../dev.yaml" # outside project folder
 
 try:
     with open(config_path) as f:
