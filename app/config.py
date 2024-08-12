@@ -45,10 +45,9 @@ class Config:
         COMPLETION = _completion
 
         class _embedding:
-            # all from config
-            MODEL = ""
-            CONTEXT = 0
-            SIZE = 0
+            MODEL = "" # from config
+            CONTEXT = 0 # read from gguf metadata on load
+            SIZE = 0 # read from gguf metadata on load
         EMBEDDING = _embedding
     LLAMA = _llama
 
@@ -93,8 +92,6 @@ try:
         llm_c_fa = obj["llm"]["completion"]["flash_attention"]
 
         llm_e_model = obj["llm"]["embedding"]["model"]
-        llm_e_context = obj["llm"]["embedding"]["context"]
-        llm_e_size = obj["llm"]["embedding"]["size"]
 
         # reaching here means yaml object is valid, set values into Config
         Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
@@ -104,8 +101,6 @@ try:
         Config.LLAMA.COMPLETION.FLASH_ATTENTION = llm_c_fa
 
         Config.LLAMA.EMBEDDING.MODEL = llm_e_model
-        Config.LLAMA.EMBEDDING.CONTEXT = llm_e_context
-        Config.LLAMA.EMBEDDING.SIZE = llm_e_size
 
 except IOError:
     print("Config file not found")

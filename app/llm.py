@@ -37,16 +37,26 @@ You are a helpful assistant. Answer using provided context only. Context: {ctx}
 
 class Embedding:
     @staticmethod
-    def _creator() -> Callable[[str | list[str], str | None], CreateEmbeddingResponse]:
-        llm = Llama(Config.LLAMA.EMBEDDING.MODEL,
+    def _llm() -> Llama:
+        return Llama(Config.LLAMA.EMBEDDING.MODEL,
             n_gpu_layers=-1,
             n_ctx=0,
             embedding=True,
             verbose=False
         )
-
-        return llm.create_embedding
     
+    @staticmethod
+    def _creator() -> Callable[[str | list[str], str | None], CreateEmbeddingResponse]:
+        return Embedding._llm().create_embedding
+    
+    @staticmethod
+    def stats() -> tuple[int, int]:
+        """
+        returns: [embedding dimension, context length]
+        """
+        llm = Embedding._llm()
+        return (llm._model.n_embd(), llm._model.n_ctx_train())
+
     @staticmethod
     def create(input: str) -> list[float]:
         create_embedding = Embedding._creator()

@@ -13,9 +13,3 @@ flash_attention = false
 [llm.embedding]
 # path relative from executable. must be of "gguf" type and for embedding use
 model = "../<model>.gguf"
-
-# context size / max input word supported by the model
-context = 512
-
-# vector size of the model
-size = 384

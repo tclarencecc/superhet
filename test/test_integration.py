@@ -30,6 +30,10 @@ class TestIntegration(IsolatedAsyncioTestCase):
         http = AsyncClient()
         db.http_client(http)
 
+        n_embd, n_ctx = llm.Embedding.stats()
+        Config.LLAMA.EMBEDDING.SIZE = n_embd
+        Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
+
     @classmethod
     def tearDownClass(cls):
         proc_db.send_signal(signal.SIGINT)

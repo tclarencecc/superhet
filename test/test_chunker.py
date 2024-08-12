@@ -3,8 +3,15 @@ from unittest import TestCase, skipIf
 from app.chunker import Chunker, _sliding_window
 from app.stream import FileStream
 import config_test
+import app.llm as llm
+from app.config import Config
 
 class TestChunker(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        n_embd, n_ctx = llm.Embedding.stats()
+        Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
+
 # -----------------------------------------------------------------------------
     @skipIf(config_test.SKIP_CHUNKER, "")
     def test_sliding_window(self):
