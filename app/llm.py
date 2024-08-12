@@ -14,17 +14,16 @@ def completion(ctx: str, query: str) -> str:
         return "Unable to answer as no data can be found in the record."
 
     prompt = """<|im_start|>system
-You are a helpful assistant. Answer using provided context only.
-Context: {ctx}
+You are a helpful assistant. Answer using provided context only. Context: {ctx}
 <|im_end|>
 <|im_start|>user
 {query} Answer using provided context only.
 <|im_end|>
 <|im_start|>assistant
 """.format(ctx=ctx, query=query)
-
+    
     llm = Llama(Config.LLAMA.COMPLETION.MODEL,
-        n_gpu_layers=1,
+        n_gpu_layers=-1,
         n_ctx=0,
         flash_attn=Config.LLAMA.COMPLETION.FLASH_ATTENTION,
         verbose=False
@@ -40,7 +39,7 @@ class Embedding:
     @staticmethod
     def _creator() -> Callable[[str | list[str], str | None], CreateEmbeddingResponse]:
         llm = Llama(Config.LLAMA.EMBEDDING.MODEL,
-            n_gpu_layers=1,
+            n_gpu_layers=-1,
             n_ctx=0,
             embedding=True,
             verbose=False
