@@ -1,7 +1,4 @@
 from unittest import IsolatedAsyncioTestCase, skipIf
-import subprocess
-import shlex
-import signal
 import asyncio
 from httpx import AsyncClient
 
@@ -11,24 +8,18 @@ from app.chunker import Chunker
 from app.config import Config
 import config_test
 
-proc_db = None
 http: AsyncClient = None
+database: db.Db = None
 
 class TestIntegration(IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
-        global proc_db
         global http
+        global database
 
-        proc_db = subprocess.Popen(
-            shlex.split(Config.QDRANT.SHELL),
-            cwd=Config.QDRANT.PATH,
-            env=Config.QDRANT.ENV,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
         http = AsyncClient()
-        db.http_client(http)
+        database = db.Db(http)
+        database.start()
 
         n_embd, n_ctx = llm.Embedding.stats()
         Config.LLAMA.EMBEDDING.SIZE = n_embd
@@ -36,9 +27,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
 
     @classmethod
     def tearDownClass(cls):
-        proc_db.send_signal(signal.SIGINT)
-        retcode = proc_db.wait()
-        print(f"\npid {proc_db.pid} retcode {retcode}")
+        database.stop()
 
     @skipIf(config_test.SKIP_INT_CRUD, "")
     async def test_crud(self):
