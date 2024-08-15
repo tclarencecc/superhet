@@ -141,28 +141,31 @@ class EnumDict:
 
 class PrintColor:
     @staticmethod
-    def OK(input: str):
-        PrintColor._print("\033[92m", input)
+    def OK(input: str, stream=False):
+        PrintColor._print("\033[92m", input, stream)
 
     @staticmethod
-    def WARN(input: str):
-        PrintColor._print("\033[93m", input)
+    def WARN(input: str, stream=False):
+        PrintColor._print("\033[93m", input, stream)
 
     @staticmethod
-    def ERROR(input: str):
-        PrintColor._print("\033[91m", input)
+    def ERROR(input: str, stream=False):
+        PrintColor._print("\033[91m", input, stream)
 
     @staticmethod
-    def BLUE(input: str):
-        PrintColor._print("\033[94m", input)
+    def BLUE(input: str, stream=False):
+        PrintColor._print("\033[94m", input, stream)
 
     @staticmethod
-    def CYAN(input: str):
-        PrintColor._print("\033[96m", input)
+    def CYAN(input: str, stream=False):
+        PrintColor._print("\033[96m", input, stream)
 
     @staticmethod
-    def _print(color: str, input: str):
-        print(f"{color}{input}\033[0m")
+    def _print(color: str, input: str, stream: bool):
+        if stream:
+            print(f"{color}{input}\033[0m", end="", flush=True)
+        else:
+            print(f"{color}{input}\033[0m")
         
 def timestamp() -> str:
     return datetime.now(

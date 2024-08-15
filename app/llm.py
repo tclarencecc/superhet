@@ -1,17 +1,17 @@
-from llama_cpp import Llama, CreateEmbeddingResponse
-from typing import Iterable, Callable
+from llama_cpp import Llama, CreateEmbeddingResponse, CreateCompletionResponse
+from typing import Iterable, Callable, Iterator
+import time
 
 from app.config import Config
-from app.util import benchmark
 
 # https://onnxruntime.ai/_app/immutable/assets/Phi2_Int4_TokenGenerationTP.ab4c4b44.png
 # at batch size 4, llama cpp embedding approaches speed of onnxruntime (1.14x)
 _BATCH_SIZE = 4
+_NO_RECORD_MSG = "Unable to answer as no data can be found in the record."
 
-@benchmark("llm completion")
-def completion(ctx: str, query: str) -> str:
+def completion(ctx: str, query: str, stream: bool=False) -> str | Iterator[CreateCompletionResponse]:
     if ctx == "":
-        return "Unable to answer as no data can be found in the record."
+        return _NO_RECORD_MSG
 
     prompt = """<|im_start|>system
 You are a helpful assistant. Answer using provided context only. Context: {ctx}
@@ -21,7 +21,7 @@ You are a helpful assistant. Answer using provided context only. Context: {ctx}
 <|im_end|>
 <|im_start|>assistant
 """.format(ctx=ctx, query=query)
-    
+        
     llm = Llama(Config.LLAMA.COMPLETION.MODEL,
         n_gpu_layers=-1,
         n_ctx=0,
@@ -30,10 +30,29 @@ You are a helpful assistant. Answer using provided context only. Context: {ctx}
     )
     res = llm.create_completion(prompt,
         max_tokens=None,
-        temperature=Config.LLAMA.COMPLETION.TEMPERATURE
+        temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
+        stream=stream
     )
 
-    return res["choices"][0]["text"]
+    if stream:
+        return res
+    else:
+        return res["choices"][0]["text"]
+    
+def completion_stream(ctx: str, query: str) -> Iterator[str]:
+    if ctx == "":
+        yield _NO_RECORD_MSG
+    else:
+        count = 0
+        t = time.time()
+        res = completion(ctx, query, stream=True)
+
+        while (r := next(res, None)) is not None:
+            count += 1
+            yield r["choices"][0]["text"]
+
+        t = time.time() - t
+        yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
 
 class Embedding:
     @staticmethod

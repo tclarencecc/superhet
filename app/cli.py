@@ -123,9 +123,12 @@ async def cli():
                     async def coro_read():
                         vec = llm.Embedding.create(input)
                         ctx = await db.read(vec)
-                        ans = llm.completion(ctx, input)
+                        res = llm.completion_stream(ctx, input)
 
-                        PrintColor.BLUE(f"{ans}\n")
+                        for r in res:
+                            PrintColor.BLUE(r, stream=True)
+                        print("\n")
+
                     async_task(coro_read())
 
             except ArgumentError as e:

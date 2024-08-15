@@ -5,9 +5,9 @@ class FileStream:
         if separator == "":
             raise ValueError("FileStream separator is required.")
         
-        # do NOT make file async (aiofiles) as this makes FileStream an async iterable
-        # in turn, Chunker also becomes async iterable. however, qdrant async client
-        # does NOT support iterating through async iterables!
+        # do NOT make file async (aiofiles) as this makes the chain an async-iter all the way:
+        # FileStream -> Chunker -> Embedding
+        # Embedding is not an async function so it becomes blocking I/O in the end
         self._reader = open(file) # let errors go through
         self._separator = separator
         self._eof = False
