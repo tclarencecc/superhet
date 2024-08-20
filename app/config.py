@@ -2,6 +2,7 @@ import uuid
 import sys
 from argparse import ArgumentParser
 import tomllib
+from enum import Enum
 
 _qdrant_key = uuid.uuid4().hex
 
@@ -18,6 +19,12 @@ class _min_max:
     def __init__(self, min, max): # no type; can be int or float
         self.MIN = min
         self.MAX = max
+
+class PromptFormat(Enum):
+    CHATML = 1,
+    GEMMA = 2
+
+    # add more as needed...
 
 class Config:
     class _qdrant:
@@ -40,6 +47,7 @@ class Config:
             MODEL = "" # from config
             TEMPERATURE = 0.1
             FLASH_ATTENTION = False # from config
+            PROMPT_FORMAT = None # from config
 
             # add more as needed...
         COMPLETION = _completion
@@ -90,6 +98,7 @@ try:
 
         llm_c_model = obj["llm"]["completion"]["model"]
         llm_c_fa = obj["llm"]["completion"]["flash_attention"]
+        llm_c_pf = PromptFormat[obj["llm"]["completion"]["prompt_format"]]
 
         llm_e_model = obj["llm"]["embedding"]["model"]
 
@@ -99,6 +108,7 @@ try:
 
         Config.LLAMA.COMPLETION.MODEL = llm_c_model
         Config.LLAMA.COMPLETION.FLASH_ATTENTION = llm_c_fa
+        Config.LLAMA.COMPLETION.PROMPT_FORMAT = llm_c_pf
 
         Config.LLAMA.EMBEDDING.MODEL = llm_e_model
 

@@ -10,6 +10,10 @@ model = "../<model>.gguf"
 # does model require flash attention? default is false
 flash_attention = false
 
+# refer to model card for prompting format used by model
+# valid values: CHATML, GEMMA
+prompt_format = "<prompt format>"
+
 [llm.embedding]
 # path relative from executable. must be of "gguf" type and for embedding use
 model = "../<model>.gguf"

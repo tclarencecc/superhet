@@ -2,7 +2,7 @@ from llama_cpp import Llama, CreateEmbeddingResponse, CreateCompletionResponse
 from typing import Iterable, Callable, Iterator
 import time
 
-from app.config import Config
+from app.config import Config, PromptFormat
 
 # https://onnxruntime.ai/_app/immutable/assets/Phi2_Int4_TokenGenerationTP.ab4c4b44.png
 # at batch size 4, llama cpp embedding approaches speed of onnxruntime (1.14x)
@@ -12,16 +12,22 @@ _NO_RECORD_MSG = "Unable to answer as no data can be found in the record."
 def completion(ctx: str, query: str, stream: bool=False) -> str | Iterator[CreateCompletionResponse]:
     if ctx == "":
         return _NO_RECORD_MSG
-
-    prompt = """<|im_start|>system
+    
+    if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
+        prompt = """<|im_start|>system
 You are a helpful assistant. Answer using provided context only. Context: {ctx}
 <|im_end|>
 <|im_start|>user
 {query} Answer using provided context only.
 <|im_end|>
-<|im_start|>assistant
-""".format(ctx=ctx, query=query)
+<|im_start|>assistant""".format(ctx=ctx, query=query)
         
+    elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
+        prompt = """<start_of_turn>user
+Context: {ctx}. You are a terse assistant. Answer using provided context only:
+{query}<end_of_turn>
+<start_of_turn>model""".format(ctx=ctx, query=query)
+    
     llm = Llama(Config.LLAMA.COMPLETION.MODEL,
         n_gpu_layers=-1,
         n_ctx=0,
