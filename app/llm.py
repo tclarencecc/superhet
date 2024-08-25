@@ -10,23 +10,41 @@ _BATCH_SIZE = 4
 _NO_RECORD_MSG = "Unable to answer as no data can be found in the record."
 
 def completion(ctx: str, query: str, stream: bool=False) -> str | Iterator[CreateCompletionResponse]:
-    if ctx == "":
-        return _NO_RECORD_MSG
+    if Config.STRICT_CTX_ONLY and ctx == "":
+        if stream:
+            return iter([{
+                "choices": [
+                    { "text": _NO_RECORD_MSG }
+                ],
+                "empty": True
+            }])
+        else:
+            return _NO_RECORD_MSG
+    
+    # if ctx is present, add it & limiter to prompt
+    ctx = f"Context: {ctx}. " if ctx != "" else ""
+    only = "Answer using provided context only. " if ctx != "" else ""
     
     if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
         prompt = """<|im_start|>system
-You are a helpful assistant. Answer using provided context only. Context: {ctx}
+You are a helpful assistant. {only}{ctx}
 <|im_end|>
 <|im_start|>user
-{query} Answer using provided context only.
+{query} {only}
 <|im_end|>
-<|im_start|>assistant""".format(ctx=ctx, query=query)
+<|im_start|>assistant""".format(ctx=ctx, query=query, only=only)
         
     elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
+        if ctx != "":
+            # if ctx is present, reduce chattiness and just answer using ctx
+            role = "You are a terse assistant. "
+        else:
+            role = "You are a helpful assistant. "
+
         prompt = """<start_of_turn>user
-Context: {ctx}. You are a terse assistant. Answer using provided context only:
+{ctx}{role}{only}
 {query}<end_of_turn>
-<start_of_turn>model""".format(ctx=ctx, query=query)
+<start_of_turn>model""".format(ctx=ctx, query=query, only=only, role=role)
     
     llm = Llama(Config.LLAMA.COMPLETION.MODEL,
         n_gpu_layers=-1,
@@ -46,19 +64,22 @@ Context: {ctx}. You are a terse assistant. Answer using provided context only:
         return res["choices"][0]["text"]
     
 def completion_stream(ctx: str, query: str) -> Iterator[str]:
-    if ctx == "":
-        yield _NO_RECORD_MSG
-    else:
-        count = 0
-        t = time.time()
-        res = completion(ctx, query, stream=True)
+    count = 0
+    empty = False
+    t = time.time()
+    res = completion(ctx, query, stream=True)
 
-        while (r := next(res, None)) is not None:
-            count += 1
-            yield r["choices"][0]["text"]
+    while (r := next(res, None)) is not None:
+        count += 1
+        if r.get("empty") is not None:
+            empty = True
+        yield r["choices"][0]["text"]
 
-        t = time.time() - t
-        yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
+    if empty:
+        return
+
+    t = time.time() - t
+    yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
 
 class Embedding:
     @staticmethod

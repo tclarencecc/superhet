@@ -25,6 +25,8 @@ class TestIntegration(IsolatedAsyncioTestCase):
         Config.LLAMA.EMBEDDING.SIZE = n_embd
         Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
 
+        Config.STRICT_CTX_ONLY = True
+
     @classmethod
     def tearDownClass(cls):
         database.stop()

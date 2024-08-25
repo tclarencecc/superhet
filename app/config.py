@@ -73,6 +73,8 @@ class Config:
 
     CLI_CMD_PREFIX = "!"
 
+    STRICT_CTX_ONLY = False
+
     # add more as needed...
 
 
