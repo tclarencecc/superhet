@@ -24,27 +24,28 @@ def completion(ctx: str, query: str, stream: bool=False) -> str | Iterator[Creat
     # if ctx is present, add it & limiter to prompt
     ctx = f"Context: {ctx}. " if ctx != "" else ""
     only = "Answer using provided context only. " if ctx != "" else ""
-    
+
+    cot = """You are an AI assistant designed to provide detailed, step-by-step responses.
+Begin with a <thinking> section and analyze the question and outline your approach.
+Use numbered steps to solve the problem and a Chain of Thought reasoning process.
+Include a <reflection> section where you review reasoning, check for errors, and confirm or adjust conclusions.
+Provide the final answer in an <output> section.
+Close each section with </thinking>, </reflection>, </output> respectively. """
+
     if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
         prompt = """<|im_start|>system
-You are a helpful assistant. {only}{ctx}
+{cot}{ctx}
 <|im_end|>
 <|im_start|>user
 {query} {only}
 <|im_end|>
-<|im_start|>assistant""".format(ctx=ctx, query=query, only=only)
+<|im_start|>assistant""".format(cot=cot, ctx=ctx, query=query, only=only)
         
     elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
-        if ctx != "":
-            # if ctx is present, reduce chattiness and just answer using ctx
-            role = "You are a terse assistant. "
-        else:
-            role = "You are a helpful assistant. "
-
         prompt = """<start_of_turn>user
-{ctx}{role}{only}
-{query}<end_of_turn>
-<start_of_turn>model""".format(ctx=ctx, query=query, only=only, role=role)
+{cot}{ctx}
+{query} {only}<end_of_turn>
+<start_of_turn>model""".format(cot=cot, ctx=ctx, query=query, only=only)
     
     llm = Llama(Config.LLAMA.COMPLETION.MODEL,
         n_gpu_layers=-1,

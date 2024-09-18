@@ -45,7 +45,7 @@ class Config:
     class _llama:
         class _completion:
             MODEL = "" # from config
-            TEMPERATURE = 0.1
+            TEMPERATURE = 0
             FLASH_ATTENTION = False # from config
             PROMPT_FORMAT = None # from config
 
