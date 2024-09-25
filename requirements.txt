@@ -40,8 +40,8 @@ jinja2==3.1.4 \
     --hash=sha256:4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369 \
     --hash=sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d
     # via llama-cpp-python
-llama-cpp-python==0.2.88 \
-    --hash=sha256:b031181d069aa61b3bbec415037b1f060d6d5b36951815f438285c4c85ca693e
+llama-cpp-python==0.2.90 \
+    --hash=sha256:419b041c62dbdb9f7e67883a6ef2f247d583d08417058776be0bff05b4ec9e3d
     # via -r requirements.in
 markupsafe==2.1.5 \
     --hash=sha256:00e046b6dd71aa03a41079792f8473dc494d564611a8f89bbbd7cb93295ebdcf \
