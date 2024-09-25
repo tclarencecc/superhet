@@ -89,7 +89,12 @@ async def cli():
             input = bytes.decode("utf-8").replace("\n", "")
 
             try:
-                arg = parser.parse_args(shlex.split(input))
+                try:
+                    input = shlex.split(input)
+                except ValueError:
+                    raise _ArgsParserQuery
+
+                arg = parser.parse_args(input)
                 if arg.command == _CMD_HELP:
                     parser.print_usage()
 
