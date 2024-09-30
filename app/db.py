@@ -9,7 +9,8 @@ import shlex
 import signal
 
 from app.config import Config
-from app.util import timestamp, benchmark
+from app.util import timestamp
+from app.decorator import benchmark
 
 _UUID0 = uuid.UUID(int=0).hex
 

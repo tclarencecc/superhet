@@ -90,11 +90,11 @@ async def cli():
 
             try:
                 try:
-                    input = shlex.split(input)
+                    spl_in = shlex.split(input)
                 except ValueError:
                     raise _ArgsParserQuery
 
-                arg = parser.parse_args(input)
+                arg = parser.parse_args(spl_in)
                 if arg.command == _CMD_HELP:
                     parser.print_usage()
 

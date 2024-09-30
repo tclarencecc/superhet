@@ -1,17 +1,12 @@
 import time
-import functools
-import inspect
-import subprocess
-import shlex
-import signal
 import asyncio
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Callable
+import tomllib
+import inspect
 
-from app.config import Config
-
-def _print_duration(name: str, t: float):
+def print_duration(name: str, t: float):
     t = time.time() - t
     if t >= 1:
         # 1.1 sec
@@ -27,80 +22,6 @@ def _print_duration(name: str, t: float):
         # 999 μs
         t = t * 1000000
         PrintColor.OK(f"{name}: {t:.0f} μs")
-
-# decor-fn is called immed on import of module with @decorator
-# if decor-fn uses config, make sure config is set BEFORE import of said module!
-def benchmark(name: str):
-    def decorate(fn):
-        if Config.BENCHMARK == False:
-            return fn
-        
-        if inspect.iscoroutinefunction(fn):
-            @functools.wraps(fn)
-            async def wrapper(*arg, **kwargs):
-                t = time.time()
-                ret = await fn(*arg, **kwargs)
-                _print_duration(name, t)
-                return ret
-        else:
-            @functools.wraps(fn)
-            def wrapper(*arg, **kwargs):
-                t = time.time()
-                ret = fn(*arg, **kwargs)
-                _print_duration(name, t)
-                return ret
-
-        return wrapper
-    return decorate
-
-def extprocess(args: list[tuple[str, str]]):
-    """
-    args: list of tuple (cwd: str, cmd: str, env: dict)\n
-    env is optional
-    """
-    def decorate(fn):
-        @functools.wraps(fn)
-        def wrapper():
-            procs = []
-            sigint = False
-
-            try:
-                for arg in args:
-                    env = None
-                    if len(arg) == 3:
-                        # has env
-                        env = arg[2]
-
-                    stdout = None
-                    stderr = None
-                    if Config.PROCESS_STDOUT == False:
-                        stdout = subprocess.DEVNULL
-                        stderr = subprocess.DEVNULL
-
-                    procs.append(subprocess.Popen(
-                        shlex.split(arg[1]),
-                        cwd=arg[0],
-                        env=env,
-                        stdout=stdout,
-                        stderr=stderr
-                    ))
-                fn()
-            except KeyboardInterrupt:
-                # SIGINT propagates to child processes
-                sigint = True
-                pass
-            finally:
-                if sigint == False:
-                    for proc in procs:
-                        proc.send_signal(signal.SIGINT)
-                
-                # regardless of how parent proc ended, check child proc status
-                # wait is a blocking call but parent proc has already ended by now anyway
-                for proc in procs:
-                    if proc.wait() != 0:
-                        print(f"pid {proc.pid} did not terminate.")
-        return wrapper
-    return decorate
 
 def new_async_task(coro, callback: Callable=None):
     def _callback(task: asyncio.Task):
@@ -214,3 +135,73 @@ class MutableString:
 
     def __len__(self) -> int:
         return self._idx + 1
+
+class Toml:
+    class Spec:
+        def __init__(self, key: str, default: any=None, callback: Callable=None):
+            self.key = key
+            self.default = default
+            self.callback = callback
+
+    def __init__(self, path: str):
+        self._path = path
+        self._file = None
+        self._root: dict[str, any] = None
+                
+    def __enter__(self):
+        try:
+            self._file = open(self._path, "rb")
+        except:
+            raise IOError(f"Unable to open {self._path} toml file.")
+        
+        self._root = tomllib.load(self._file)
+        return self
+        
+    def __exit__(self, type, value, traceback):
+        self._file.close()
+
+    def __call__(self, obj: any):
+        subs = list()
+
+        attrs = dir(obj)
+        for attr in attrs:
+            if attr.startswith("_"):
+                continue
+
+            sub = getattr(obj, attr)
+            if inspect.isclass(sub):
+                subs.append(sub)
+            else:
+                if type(sub) is Toml.Spec:
+                    val = self.parse(sub.key, sub.default)
+                    if sub.callback is not None:
+                        val = sub.callback(val)
+
+                    setattr(obj, attr, val)
+
+        for sub in subs:
+            self.__call__(sub)
+            
+    def parse(self, key: str, default: any=None) -> any:
+        try:
+            obj = self._root
+            found = True
+
+            for k in key.split("."):
+                if obj.get(k) is not None:
+                    obj = obj[k]
+                else:
+                    found = False
+                    break
+
+            if found:
+                return obj
+            
+            # if default has value, key is optional
+            # if default is none, key is required
+            if default is not None:
+                return default
+            else:
+                raise ValueError(f"Key '{key}' not found in toml file.")
+        except tomllib.TOMLDecodeError:
+            raise ValueError("Error decoding toml file.")

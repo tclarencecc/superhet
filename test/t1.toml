@@ -1,0 +1,9 @@
+[root]
+req = "data1"
+#req2 = "x"
+
+[nested]
+[nested.child]
+req = "data2"
+casted = "CHATML"
+#optional = true

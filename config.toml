@@ -7,12 +7,17 @@ path = "../db"
 # path relative from executable. must be of "gguf" type
 model = "../<model>.gguf"
 
-# does model require flash attention? default is false
-flash_attention = false
-
 # refer to model card for prompting format used by model
-# valid values: CHATML, GEMMA
+# valid values: CHATML, GEMMA, LLAMA
 prompt_format = "<prompt format>"
+
+# optionals:
+# does model require flash attention? default is false
+#flash_attention = true
+
+# input context size. default is 0 (max supported size)
+# need to set manually if size is too large to fit in available VRAM
+#context_size = 0
 
 [llm.embedding]
 # path relative from executable. must be of "gguf" type and for embedding use

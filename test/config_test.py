@@ -1,3 +1,4 @@
 
 SKIP_CHUNKER = False
 SKIP_INT_CRUD = False
+SKIP_CONFIG = False

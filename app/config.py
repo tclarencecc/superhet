@@ -1,8 +1,9 @@
 import uuid
 import sys
 from argparse import ArgumentParser
-import tomllib
 from enum import Enum
+
+from app.util import Toml
 
 _qdrant_key = uuid.uuid4().hex
 
@@ -22,9 +23,8 @@ class _min_max:
 
 class PromptFormat(Enum):
     CHATML = 1,
-    GEMMA = 2
-
-    # add more as needed...
+    GEMMA = 2,
+    LLAMA = 3
 
 class Config:
     class _qdrant:
@@ -37,25 +37,28 @@ class Config:
         ENV = {
             "QDRANT__SERVICE__API_KEY": _qdrant_key,
             "QDRANT__TELEMETRY_DISABLED": "true",
-            "QDRANT__STORAGE__STORAGE_PATH": "", # from config
-            "QDRANT__STORAGE__SNAPSHOTS_PATH": "" # derived from STORAGE_PATH down the line
+            "QDRANT__STORAGE__STORAGE_PATH": None, # manually parsed from toml
+            "QDRANT__STORAGE__SNAPSHOTS_PATH": None # derived from STORAGE_PATH
         }
     QDRANT = _qdrant
 
     class _llama:
         class _completion:
-            MODEL = "" # from config
-            TEMPERATURE = 0
-            FLASH_ATTENTION = False # from config
-            PROMPT_FORMAT = None # from config
+            MODEL = Toml.Spec("llm.completion.model")
+            PROMPT_FORMAT = Toml.Spec("llm.completion.prompt_format", None, lambda x: PromptFormat[x])
+            FLASH_ATTENTION = Toml.Spec("llm.completion.flash_attention", False)
+            CONTEXT_SIZE = Toml.Spec("llm.completion.context_size", 0)
 
-            # add more as needed...
+            # hardcoded
+            TEMPERATURE = 0
         COMPLETION = _completion
 
         class _embedding:
-            MODEL = "" # from config
-            CONTEXT = 0 # read from gguf metadata on load
-            SIZE = 0 # read from gguf metadata on load
+            MODEL = Toml.Spec("llm.embedding.model")
+
+            # derived from gguf metadata
+            CONTEXT = None
+            SIZE = None
         EMBEDDING = _embedding
     LLAMA = _llama
 
@@ -75,7 +78,7 @@ class Config:
 
     STRICT_CTX_ONLY = False
 
-    # add more as needed...
+    CHAT_HISTORY_SIZE = 5
 
 
 if in_prod():
@@ -92,33 +95,15 @@ else:
     config_path = "../dev.toml" # outside project folder
 
 try:
-    with open(config_path, "rb") as f:
-        # any of these can raise error
-        obj = tomllib.load(f)
+    with Toml(config_path) as t:
+        t(Config)
 
-        db_path = obj["db"]["path"]
-
-        llm_c_model = obj["llm"]["completion"]["model"]
-        llm_c_fa = obj["llm"]["completion"]["flash_attention"]
-        llm_c_pf = PromptFormat[obj["llm"]["completion"]["prompt_format"]]
-
-        llm_e_model = obj["llm"]["embedding"]["model"]
-
-        # reaching here means yaml object is valid, set values into Config
+        db_path = t.parse("db.path")
         Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
         Config.QDRANT.ENV["QDRANT__STORAGE__SNAPSHOTS_PATH"] = f"{db_path}/snapshots"
 
-        Config.LLAMA.COMPLETION.MODEL = llm_c_model
-        Config.LLAMA.COMPLETION.FLASH_ATTENTION = llm_c_fa
-        Config.LLAMA.COMPLETION.PROMPT_FORMAT = llm_c_pf
-
-        Config.LLAMA.EMBEDDING.MODEL = llm_e_model
-
-except IOError:
-    print("Config file not found")
-    sys.exit()
-except (tomllib.TOMLDecodeError, KeyError):
-    print("Config file invalid")
+except Exception as e:
+    print(e)
     sys.exit()
 
 # argv overrides config

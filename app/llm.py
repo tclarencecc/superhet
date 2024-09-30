@@ -22,34 +22,40 @@ def completion(ctx: str, query: str, stream: bool=False) -> str | Iterator[Creat
             return _NO_RECORD_MSG
     
     # if ctx is present, add it & limiter to prompt
-    ctx = f"Context: {ctx}. " if ctx != "" else ""
-    only = "Answer using provided context only. " if ctx != "" else ""
+    ctx = f"Context: {ctx}." if ctx != "" else ""
+    only = " Answer using provided context only." if ctx != "" else ""
 
     cot = """You are an AI assistant designed to provide detailed, step-by-step responses.
-Begin with a <thinking> section and analyze the question and outline your approach.
+Begin with a [thinking] section and analyze the question and outline your approach.
 Use numbered steps to solve the problem and a Chain of Thought reasoning process.
-Include a <reflection> section where you review reasoning, check for errors, and confirm or adjust conclusions.
-Provide the final answer in an <output> section.
-Close each section with </thinking>, </reflection>, </output> respectively. """
+Include a [reflection] section where you review reasoning, check for errors, and confirm or adjust conclusions.
+Provide the final answer in an [output] section. """
 
     if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
         prompt = """<|im_start|>system
 {cot}{ctx}
 <|im_end|>
 <|im_start|>user
-{query} {only}
+{query}{only}
 <|im_end|>
-<|im_start|>assistant""".format(cot=cot, ctx=ctx, query=query, only=only)
+<|im_start|>assistant"""
         
     elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
         prompt = """<start_of_turn>user
 {cot}{ctx}
-{query} {only}<end_of_turn>
-<start_of_turn>model""".format(cot=cot, ctx=ctx, query=query, only=only)
+{query}{only}<end_of_turn>
+<start_of_turn>model"""
+        
+    elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.LLAMA:
+        prompt = """<|start_header_id|>system<|end_header_id|>
+{cot}{ctx}<|eot_id|><|start_header_id|>user<|end_header_id|>
+{query}{only}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
+
+    prompt = prompt.format(cot=cot, ctx=ctx, query=query, only=only)
     
     llm = Llama(Config.LLAMA.COMPLETION.MODEL,
         n_gpu_layers=-1,
-        n_ctx=0,
+        n_ctx=Config.LLAMA.COMPLETION.CONTEXT_SIZE,
         flash_attn=Config.LLAMA.COMPLETION.FLASH_ATTENTION,
         verbose=False
     )

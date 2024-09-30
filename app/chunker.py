@@ -2,7 +2,8 @@ from typing import Iterable
 
 from app.stream import FileStream
 from app.config import Config
-from app.util import MutableString, benchmark
+from app.util import MutableString
+from app.decorator import benchmark
 
 class Chunker:
     def __init__(self, input: str, params: dict[str, any]={}):
