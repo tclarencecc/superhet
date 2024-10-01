@@ -5,7 +5,7 @@ import sys
 
 from app.chunker import Chunker
 import app.db as db
-import app.llm as llm
+from app.llm import Embedding, Completion, Chat
 from app.util import new_async_task, PrintColor
 from app.config import Config
 
@@ -81,6 +81,8 @@ async def cli():
         lock = True
         new_async_task(coro, callback)
 
+    chat = Chat()
+
     while True:
         bytes = await reader.read(500)
         
@@ -115,7 +117,7 @@ async def cli():
                             "size": 256,
                             "overlap": 0.15
                         })
-                        embed = llm.Embedding(chunker)
+                        embed = Embedding(chunker)
                         await db.create(embed, arg.source)
                     async_task(coro_create())
 
@@ -126,10 +128,12 @@ async def cli():
 
             except _ArgsParserQuery:
                     async def coro_read():
-                        vec = llm.Embedding.create(input)
+                        vec = Embedding.create(input)
                         ctx = await db.read(vec)
-                        res = llm.completion_stream(ctx, input)
 
+                        completion = Completion()
+                        res = completion(input, ctx, chat)
+                        
                         for r in res:
                             PrintColor.BLUE(r, stream=True)
                         print("\n")

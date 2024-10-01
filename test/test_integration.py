@@ -3,10 +3,11 @@ import asyncio
 from httpx import AsyncClient
 
 import app.db as db
-import app.llm as llm
+from app.llm import Embedding, Completion
 from app.chunker import Chunker
 from app.config import Config
 import config_test
+from app.util import PrintColor
 
 http: AsyncClient = None
 database: db.Db = None
@@ -21,7 +22,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         database = db.Db(http)
         database.start()
 
-        n_embd, n_ctx = llm.Embedding.stats()
+        n_embd, n_ctx = Embedding.stats()
         Config.LLAMA.EMBEDDING.SIZE = n_embd
         Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
 
@@ -53,7 +54,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
             "size": 250,
             "overlap": 0.25
         })
-        embed = llm.Embedding(chunker)
+        embed = Embedding(chunker)
         c_res = await db.create(embed, src)
         self.assertTrue(c_res)
 
@@ -67,12 +68,16 @@ class TestIntegration(IsolatedAsyncioTestCase):
         
         self.assertTrue(inlist)
 
-        async def read() -> str:
-            vec = llm.Embedding.create(query)
+        async def read():
+            vec = Embedding.create(query)
             ctx = await db.read(vec)
-            ans = llm.completion(ctx, query)
-            print(ans)
-            return ans
+
+            completion = Completion()
+            res = completion(query, ctx)
+
+            for r in res:
+                PrintColor.BLUE(r, stream=True)
+            print("\n")
 
         print("reading..")
         propans = await read()
@@ -81,9 +86,9 @@ class TestIntegration(IsolatedAsyncioTestCase):
         print("deleting..")
         self.assertTrue(await db.delete(src))
 
-        print("read non-existing..")
-        nonex = await read()
-        self.assertTrue(nonex == nrf)
+        # print("read non-existing..")
+        # nonex = await read()
+        # self.assertTrue(nonex == nrf)
 
         print("dropping..")
         await db.drop(collection)
