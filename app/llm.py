@@ -19,6 +19,8 @@ class Chat:
 
     @staticmethod
     def prompt(query: str, ctx: str, history: Iterable[Entry]=None) -> str:
+        prompt = MutableString()
+
         ctx = f"Context: {ctx}" if ctx != "" else ""
         only = " Answer using provided context only." if ctx != "" else ""
 
@@ -29,13 +31,11 @@ Third, use a [reflection] section where you review reasoning, check for errors, 
 Fourth, provide the final answer in an [output] section."""
 
         # use {req} {res} as placeholders
-        def reqres(template: str) -> str:
-            ret = ""
+        def reqres(template: str, input: MutableString):
             if history is not None:
                 for v in history:
                     if v is not None:
-                        ret += template.format(req=v.req, res=v.res)
-            return ret
+                        input.add(template.format(req=v.req, res=v.res))
 
         if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
             # <|im_start|>system
@@ -45,28 +45,34 @@ Fourth, provide the final answer in an [output] section."""
             # {}
             # <|im_end|>
             # <|im_start|>assistant
-            prompt = f"<|im_start|>system\n{cot}<|im_end|>"
-            prompt += reqres("<|im_start|>user\n{req}<|im_end|><|im_start|>assistant\n{res}<|im_end|>")
-            prompt += f"<|im_start|>user\n{ctx}\n{query}{only}<|im_end|><|im_start|>assistant"
+
+            # qwen often forgets system prompt cot in long conversations, add it to user prompt instead
+            #prompt.add(f"<|im_start|>system\n{cot}<|im_end|>")
+            reqres("<|im_start|>user\n{req}<|im_end|><|im_start|>assistant\n{res}<|im_end|>",
+                prompt)
+            prompt.add(f"<|im_start|>user\n{cot}\n{ctx}\n{query}{only}<|im_end|><|im_start|>assistant")
         
         elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
             # <start_of_turn>user
             # {}
             # {}<end_of_turn>
             # <start_of_turn>model
-            prompt = reqres("<start_of_turn>user\n{req}<end_of_turn><start_of_turn>model\n{res}<end_of_turn>")
-            prompt += f"<start_of_turn>user\n{cot}\n{ctx}\n{query}{only}<end_of_turn><start_of_turn>model"
+
+            reqres("<start_of_turn>user\n{req}<end_of_turn><start_of_turn>model\n{res}<end_of_turn>",
+                prompt)
+            prompt.add(f"<start_of_turn>user\n{cot}\n{ctx}\n{query}{only}<end_of_turn><start_of_turn>model")
 
         elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.LLAMA:
             # <|start_header_id|>system<|end_header_id|>{}<|eot_id|>
             # <|start_header_id|>user<|end_header_id|>{}<|eot_id|>
             # <|start_header_id|>assistant<|end_header_id|>
-            prompt = f"<|start_header_id|>system<|end_header_id|>{cot}<|eot_id|>"
-            prompt += reqres(
-"""<|start_header_id|>user<|end_header_id|>{req}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{res}<|eot_id|>""")
-            prompt += f"<|start_header_id|>user<|end_header_id|>{ctx}\n{query}{only}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
 
-        return prompt
+            prompt.add(f"<|start_header_id|>system<|end_header_id|>{cot}<|eot_id|>")
+            reqres("<|start_header_id|>user<|end_header_id|>{req}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{res}<|eot_id|>",
+                prompt)
+            prompt.add(f"<|start_header_id|>user<|end_header_id|>{ctx}\n{query}{only}<|eot_id|><|start_header_id|>assistant<|end_header_id|>")
+
+        return prompt.value()
     
     @staticmethod
     def output_tag() -> str:
