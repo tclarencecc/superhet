@@ -42,7 +42,7 @@ class Chat:
 
         # ctx his scenario
         # 0   0   1st
-        #         strict: his only
+        #         strict: no ans
         #         not:    free
         # 0   1   nth, follow up
         #         strict: his only
@@ -53,17 +53,22 @@ class Chat:
         # 1   1   nth, follow up
         #         strict: ctx only
         #         not:    ctx only
-        ctx = f"Context: {ctx}" if ctx != "" else ""
-        only = " Answer using provided context only." if ctx != "" else ""
-#         only = ""
 
-#         if ctx == "":
-#             if Config.STRICT_CTX_ONLY:
-#                 only = """ Answer using conversation history only. If you have no answer, 
-# first, use an [explanation] section to explain why you cannot provide an answer.
-# Second, provide UNABLE TO ANSWER in an [output] section."""
-#         else:
-#             only = " Answer using provided context only."
+        ctx = f"Context: {ctx}" if ctx != "" else ""
+        only = ""
+
+        if ctx == "":
+            if Config.STRICT_CTX_ONLY:
+                if self.latest is not None:
+                    # LLAMA, in this use-case, responds to 'negative' command better
+                    if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML or Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
+                        only = " Answer using provided prompt only."
+                    elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.LLAMA:
+                        only = " Answer without using your stocked knowledge."
+                else:
+                    only = " Answer with context insufficient to answer the question."
+        else:
+            only = " Answer using provided context only."
 
         cot = """You are an AI assistant designed to provide detailed, step-by-step responses.
 First, use a [thinking] section to analyze the question and outline your approach.
