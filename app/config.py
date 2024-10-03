@@ -96,7 +96,7 @@ else:
 
 try:
     with Toml(config_path) as t:
-        t(Config)
+        t.load_to(Config)
 
         db_path = t.parse("db.path")
         Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path

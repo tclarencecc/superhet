@@ -3,7 +3,7 @@ import asyncio
 from httpx import AsyncClient
 
 import app.db as db
-from app.llm import Embedding, Completion
+from app.llm import Embedding, Completion, Chat
 from app.chunker import Chunker
 from app.config import Config
 import config_test
@@ -40,7 +40,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         collection = "_test_collection_"
         src="python"
         query = "how does python manage memory?"
-        nrf = "Unable to answer as no data can be found in the record."
+        #nrf = "unable to answer"
 
         # override default collection and start with a blank collection
         # repeated create/delete on same collection often results to 
@@ -68,26 +68,30 @@ class TestIntegration(IsolatedAsyncioTestCase):
         
         self.assertTrue(inlist)
 
-        async def read():
+        async def read() -> str:
             vec = Embedding.create(query)
             ctx = await db.read(vec)
 
+            chat = Chat()
             completion = Completion()
-            res = completion(query, ctx)
+            res = completion(query, ctx, chat)
 
             for r in res:
                 PrintColor.BLUE(r, stream=True)
             print("\n")
 
+            return chat.latest.res
+
         print("reading..")
         propans = await read()
-        self.assertTrue(propans != nrf)
+        self.assertTrue(propans != "")
 
         print("deleting..")
         self.assertTrue(await db.delete(src))
 
         # print("read non-existing..")
         # nonex = await read()
+        # print(f"nonex = {nonex}")
         # self.assertTrue(nonex == nrf)
 
         print("dropping..")

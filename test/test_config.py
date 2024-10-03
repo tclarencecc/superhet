@@ -22,7 +22,7 @@ class TestConfig(TestCase):
             NESTED = _nested
 
         with Toml("./test/t1.toml") as t:
-            t(TestConfig1)
+            t.load_to(TestConfig1)
 
         self.assertEqual(TestConfig1.ROOT.REQ, "data1")
         self.assertEqual(TestConfig1.NESTED.CHILD.REQ, "data2")
@@ -38,7 +38,7 @@ class TestConfig(TestCase):
         errmsg = ""
         with Toml("./test/t1.toml") as t:
             try:
-                t(TestConfig2)
+                t.load_to(TestConfig2)
             except Exception as e:
                 errmsg = str(e)
 
@@ -52,7 +52,7 @@ class TestConfig(TestCase):
 
         with Toml("./test/t1.toml") as t:
             try:
-                t(TestConfig3)
+                t.load_to(TestConfig3)
             except Exception as e:
                 errmsg = str(e)
 

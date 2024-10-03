@@ -160,7 +160,7 @@ class Toml:
     def __exit__(self, type, value, traceback):
         self._file.close()
 
-    def __call__(self, obj: any):
+    def load_to(self, obj: any):
         subs = list()
 
         attrs = dir(obj)
@@ -180,7 +180,7 @@ class Toml:
                     setattr(obj, attr, val)
 
         for sub in subs:
-            self.__call__(sub)
+            self.load_to(sub)
             
     def parse(self, key: str, default: any=None) -> any:
         try:
