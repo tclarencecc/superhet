@@ -42,10 +42,10 @@ class Chat:
 
         # ctx his scenario
         # 0   0   1st
-        #         strict: no ans
+        #         strict: ctx only (no ans)
         #         not:    free
         # 0   1   nth, follow up
-        #         strict: his only
+        #         strict: ctx only (ctx = prev res)
         #         not:    free
         # 1   0   1st
         #         strict: ctx only
@@ -55,20 +55,10 @@ class Chat:
         #         not:    ctx only
 
         ctx = f"Context: {ctx}" if ctx != "" else ""
-        only = ""
+        only = " Answer using provided context only." if ctx != "" or Config.STRICT_CTX_ONLY else ""
 
-        if ctx == "":
-            if Config.STRICT_CTX_ONLY:
-                if self.latest is not None:
-                    # LLAMA, in this use-case, responds to 'negative' command better
-                    if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML or Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
-                        only = " Answer using provided prompt only."
-                    elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.LLAMA:
-                        only = " Answer without using your stocked knowledge."
-                else:
-                    only = " Answer with context insufficient to answer the question."
-        else:
-            only = " Answer using provided context only."
+        if ctx == "" and Config.STRICT_CTX_ONLY and self.latest is not None:
+            ctx = f"Context: {self.latest.res}"
 
         cot = """You are an AI assistant designed to provide detailed, step-by-step responses.
 First, use a [thinking] section to analyze the question and outline your approach.
@@ -120,7 +110,7 @@ Fourth, provide the final answer in an [output] section."""
         self._deque.append(Chat.Entry(query, ""))
 
         return prompt.value()
-    
+
     def response(self, value: str):
         last: Chat.Entry = None
         for v in self._deque:
