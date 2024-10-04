@@ -3,7 +3,7 @@ import asyncio
 from httpx import AsyncClient
 
 import app.db as db
-from app.llm import Embedding, Completion, Chat
+from app.llm import Embedding, Completion, Chat, _NO_CTX_ANS_MSG
 from app.chunker import Chunker
 from app.config import Config
 import config_test
@@ -82,15 +82,15 @@ class TestIntegration(IsolatedAsyncioTestCase):
             return chat.latest.res
 
         print("reading..")
-        propans = await read()
-        #self.assertTrue(propans != "")
+        ans = await read()
+        self.assertTrue(ans != _NO_CTX_ANS_MSG)
 
         print("deleting..")
         self.assertTrue(await db.delete(src))
 
         print("read non-existing..")
-        nonex = await read()
-        #self.assertTrue(nonex == nrf)
+        ans = await read()
+        self.assertTrue(ans == _NO_CTX_ANS_MSG)
 
         print("dropping..")
         await db.drop(collection)

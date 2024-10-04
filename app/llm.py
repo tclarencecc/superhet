@@ -9,12 +9,14 @@ from app.util import MutableString
 # https://onnxruntime.ai/_app/immutable/assets/Phi2_Int4_TokenGenerationTP.ab4c4b44.png
 # at batch size 4, llama cpp embedding approaches speed of onnxruntime (1.14x)
 _BATCH_SIZE = 4
+_NO_CTX_ANS_MSG = "Unable to answer the question as there is not enough context provided."
 
 class Chat:
     class Entry:
-        def __init__(self, req: str, res: str):
+        def __init__(self, req: str):
             self.req = req
-            self.res = res
+            self.res = ""
+            self.ctx_ans = True
 
     def __init__(self):
         self._deque: deque[Chat.Entry] = deque([], Config.CHAT_HISTORY_SIZE)
@@ -37,29 +39,34 @@ class Chat:
 
         return last
 
-    def request(self, query: str, ctx: str) -> str:
-        prompt = MutableString()
-
+    def request(self, query: str, ctx: str) -> str | None:
         # ctx his scenario
-        # 0   0   1st
-        #         strict: ctx only (no ans)
-        #         not:    free
-        # 0   1   nth, follow up
-        #         strict: ctx only (ctx = prev res)
-        #         not:    free
-        # 1   0   1st
-        #         strict: ctx only
-        #         not:    ctx only
+        # 0   0   1st query
+        #         1) strict: no ans
+        #         2) not:    free
+        # 0   1   nth query, follow up
+        #         strict:
+        #           3) prev no:        no ans
+        #           4) prev with:      ctx only = prev res
+        #         5) not:    free
+        # 1   0   1st query
         # 1   1   nth, follow up
-        #         strict: ctx only
-        #         not:    ctx only
+        #         6) all:    ctx only
 
-        ctx = f"Context: {ctx}" if ctx != "" else ""
-        only = " Answer using provided context only." if ctx != "" or Config.STRICT_CTX_ONLY else ""
+        if ctx == "" and Config.STRICT_CTX_ONLY:
+            if self.latest is None:
+                self._deque.append(Chat.Entry(query))
+                return # 1
+            elif not self.latest.ctx_ans:
+                self._deque.append(Chat.Entry(query))
+                return # 3
+            else:
+                ctx = f"Context: {self.latest.res}" # 4
+        else:
+            ctx = f"Context: {ctx}" if ctx != "" else "" # 2,5 = "", 6 = ctx
 
-        if ctx == "" and Config.STRICT_CTX_ONLY and self.latest is not None:
-            ctx = f"Context: {self.latest.res}"
-
+        only = " Answer using provided context only." if ctx != "" else "" # 4,6
+        
         cot = """You are an AI assistant designed to provide detailed, step-by-step responses.
 First, use a [thinking] section to analyze the question and outline your approach.
 Second, use a [steps] section to list how to solve the problem using a Chain of Thought reasoning process.
@@ -71,6 +78,8 @@ Fourth, provide the final answer in an [output] section."""
             for v in self._deque:
                 if v is not None:
                     input.add(template.format(req=v.req, res=v.res))
+
+        prompt = MutableString()
 
         if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
             # <|im_start|>system
@@ -107,7 +116,7 @@ Fourth, provide the final answer in an [output] section."""
                 prompt)
             prompt.add(f"<|start_header_id|>user<|end_header_id|>{ctx}\n{query}{only}<|eot_id|><|start_header_id|>assistant<|end_header_id|>")
 
-        self._deque.append(Chat.Entry(query, ""))
+        self._deque.append(Chat.Entry(query))
 
         return prompt.value()
 
@@ -119,6 +128,8 @@ Fourth, provide the final answer in an [output] section."""
 
         if last is not None:
             last.res = value
+            if value == _NO_CTX_ANS_MSG:
+                last.ctx_ans = False
 
 
 class Completion:
@@ -139,32 +150,37 @@ class Completion:
         )
 
     def __call__(self, query: str, ctx: str, chat: Chat) -> Iterator[str]:
-        comp = MutableString()
+        prompt = chat.request(query, ctx)
+        if prompt is None:
+            chat.response(_NO_CTX_ANS_MSG)
+            yield f"\n{_NO_CTX_ANS_MSG}"
 
-        res = self._llm.create_completion(chat.request(query, ctx),
-            max_tokens=None,
-            temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
-            stream=True
-        )
+        else:
+            res = self._llm.create_completion(prompt,
+                max_tokens=None,
+                temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
+                stream=True
+            )
 
-        count = 0
-        t = time.time()
+            count = 0
+            comp = MutableString()
+            t = time.time()
 
-        while (r := next(res, None)) is not None:
-            count += 1
-            v = r["choices"][0]["text"]
-            comp.add(v)
-            yield v
+            while (r := next(res, None)) is not None:
+                count += 1
+                v = r["choices"][0]["text"]
+                comp.add(v)
+                yield v
 
-        t = time.time() - t
-        yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
+            t = time.time() - t
+            yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
 
-        # comp: xxx<output tag>yyy
-        raw = comp.value().lower()
+            # comp: xxx<output tag>yyy
+            raw = comp.value().lower()
 
-        spl_raw = raw.split(chat.output_tag)
-        if len(spl_raw) == 2:
-            chat.response(spl_raw[1].strip())
+            spl_raw = raw.split(chat.output_tag)
+            if len(spl_raw) == 2:
+                chat.response(spl_raw[1].strip())
 
 
 class Embedding:
