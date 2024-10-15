@@ -1,15 +1,13 @@
 from io import StringIO
 
+from app.config import Config
+
 class FileStream:
-    def __init__(self, file: str, separator="\n\n"):
-        if separator == "":
-            raise ValueError("FileStream separator is required.")
-        
+    def __init__(self, file: str):
         # do NOT make file async (aiofiles) as this makes the chain an async-iter all the way:
         # FileStream -> Chunker -> Embedding
         # Embedding is not an async function so it becomes blocking I/O in the end
         self._reader = open(file) # let errors go through
-        self._separator = separator
         self._eof = False
 
         self._read_str = ""
@@ -24,7 +22,8 @@ class FileStream:
 
         writer = StringIO()
         idx = 0
-        count = len(self._separator)
+        separator = Config.CHUNK.SEPARATOR
+        count = len(separator)
         buffer = [""] * count
         rslen = len(self._read_str)
 
@@ -34,7 +33,7 @@ class FileStream:
                 # most of the time char read IS NOT part of separator so just write [0]
                 writer.write(buffer[0])
             else:
-                if buffer[idx] == self._separator[0]:
+                if buffer[idx] == separator[0]:
                     # handle edge case where latest char breaks similarity
                     # but is actually the beginning of a new separator
                     writer.write("".join(buffer[:idx]))
@@ -56,7 +55,7 @@ class FileStream:
                 buffer[idx] = self._read_str[self._read_idx]
                 self._read_idx += 1
 
-                if buffer[idx] == self._separator[idx]:
+                if buffer[idx] == separator[idx]:
                     if (idx + 1) == count: # similar all the way to last char
                         break
                     else:

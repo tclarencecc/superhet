@@ -2,6 +2,7 @@ import uuid
 import sys
 from argparse import ArgumentParser
 from enum import Enum
+from typing import Callable
 
 from app.util import Toml
 
@@ -26,6 +27,11 @@ class PromptFormat(Enum):
     GEMMA = 2,
     LLAMA = 3
 
+class DocumentScript(Enum):
+    # https://en.wikipedia.org/wiki/List_of_writing_systems
+    LATIN = 1,
+    HANZI = 2
+    
 class Config:
     class _qdrant:
         HOST = "http://localhost:6333"
@@ -63,8 +69,16 @@ class Config:
     LLAMA = _llama
 
     class _chunk:
-        SIZE = _min_max(20, None) # no MAX; computed from EMBEDDING.CONTEXT
-        OVERLAP = _min_max(0.1, 0.25)
+        SEPARATOR = Toml.Spec("document.separator")
+        SCRIPT = Toml.Spec("document.script", None, lambda x: DocumentScript[x])
+
+        SIZE_LIMIT = _min_max(20, None) # no MAX; computed from EMBEDDING.CONTEXT
+        SIZE = Toml.Spec("document.chunk.size")
+
+        # https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/azure-ai-search-outperforming-vector-search-with-hybrid/ba-p/3929167
+        # table 5 25% overlap optimal
+        OVERLAP_LIMIT = _min_max(0.1, 0.25)
+        OVERLAP = Toml.Spec("document.chunk.overlap")
     CHUNK = _chunk
 
     BENCHMARK = not in_prod()
@@ -81,31 +95,48 @@ class Config:
     CHAT_HISTORY_SIZE = 2
 
 
-if in_prod():
-    config_path = "./config.toml" # default same dir as executable
+    @staticmethod
+    def load_from_toml(post_load_callback: Callable):
+        if in_prod():
+            config_path = "./config.toml" # default same dir as executable
 
-    parser = ArgumentParser()
-    parser.add_argument("exe") # ./main itself, just ignore
-    parser.add_argument("-cfg", "--config", type=str, required=False)
-    arg = parser.parse_args(sys.argv)
+            parser = ArgumentParser()
+            parser.add_argument("exe") # ./main itself, just ignore
+            parser.add_argument("-cfg", "--config", type=str, required=False)
+            arg = parser.parse_args(sys.argv)
 
-    if arg.config is not None:
-        config_path = arg.config
-else:
-    config_path = "../dev.toml" # outside project folder
+            if arg.config is not None:
+                config_path = arg.config
+        else:
+            config_path = "../dev.toml" # outside project folder
 
-try:
-    with Toml(config_path) as t:
-        t.load_to(Config)
+        try:
+            with Toml(config_path) as t:
+                t.load_to(Config)
 
-        db_path = t.parse("db.path")
-        Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
-        Config.QDRANT.ENV["QDRANT__STORAGE__SNAPSHOTS_PATH"] = f"{db_path}/snapshots"
+                # setup manually parsed config values
+                db_path = t.parse("db.path")
+                Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
+                Config.QDRANT.ENV["QDRANT__STORAGE__SNAPSHOTS_PATH"] = f"{db_path}/snapshots"
 
-except Exception as e:
-    print(e)
-    sys.exit()
+            post_load_callback()
 
-# argv overrides config
-# if in_prod():
-#     Config.XYZ = arg.xyz
+            # setup post_load_callback reliant config values
+            if Config.CHUNK.SCRIPT == DocumentScript.LATIN:
+                # assuming a generous 2 token-per-word
+                Config.CHUNK.SIZE_LIMIT.MAX = int(Config.LLAMA.EMBEDDING.CONTEXT / 2)
+            elif Config.CHUNK.SCRIPT == DocumentScript.HANZI:
+                # multiple chars can be just 1 token; assume worst case 1 token-per-char with small allowance
+                Config.CHUNK.SIZE_LIMIT.MAX = int(Config.LLAMA.EMBEDDING.CONTEXT * 0.8)
+
+            # validations
+            def minmax_validate(val, limit: _min_max, text: str):
+                if val < limit.MIN or val > limit.MAX:
+                    raise ValueError(f"Config {text} must be {limit.MIN} to {limit.MAX}.")
+
+            minmax_validate(Config.CHUNK.OVERLAP, Config.CHUNK.OVERLAP_LIMIT, "[document.chunk] overlap")
+            minmax_validate(Config.CHUNK.SIZE, Config.CHUNK.SIZE_LIMIT, "[document.chunk] size")
+            
+        except Exception as e:
+            print(e)
+            sys.exit()

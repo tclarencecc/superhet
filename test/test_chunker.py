@@ -9,8 +9,16 @@ from app.config import Config
 class TestChunker(TestCase):
     @classmethod
     def setUpClass(cls):
-        n_embd, n_ctx = llm.Embedding.stats()
-        Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
+        def post_config_load():
+            n_embd, n_ctx = llm.Embedding.stats()
+            Config.LLAMA.EMBEDDING.SIZE = n_embd
+            Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
+
+        Config.load_from_toml(post_config_load)
+
+        # override toml; test cases below uses these values
+        Config.CHUNK.SIZE = 100
+        Config.CHUNK.OVERLAP = 0.25
 
 # -----------------------------------------------------------------------------
     @skipIf(config_test.SKIP_CHUNKER, "")
@@ -29,7 +37,7 @@ just attack. After that there will be a boss."""
 short talk about Sin, you'll have to fight some sinscales. These are easy,
 just attack. After that there will be a boss."""
 
-        ret = _sliding_window(s1, 100, 0.25, True)
+        ret = _sliding_window(s1)
         self.assertEqual(ret[-1], s2)
 
 # -----------------------------------------------------------------------------
@@ -48,8 +56,10 @@ which binds method and variable names during program execution."""
         self.assertEqual(c[1], s1)
 
         # test <br> separator (& its mangled variants)
+        Config.CHUNK.SEPARATOR = "<br>"
+
         c.clear()
-        for chunk in FileStream("./test/t2.txt", separator="<br>"):
+        for chunk in FileStream("./test/t2.txt"):
             c.append(chunk)
 
         self.assertEqual(len(c), 7)
@@ -66,10 +76,7 @@ which binds method and variable names during program execution."""
     def test_chunker(self):
         # test filestream -> sliding_window -> chunker pipeline
         c = []
-        for sentence in Chunker("./test/t3.txt", {
-                "size": 100,
-                "overlap": 0.25
-            }):
+        for sentence in Chunker("./test/t3.txt"):
             c.append(sentence)
 
         s1 = """With Tidus,
@@ -82,10 +89,7 @@ until he dies."""
 
         # test handling of 'x.x' words
         c.clear()
-        for sentence in Chunker("./test/t1.txt", {
-                "size": 100,
-                "overlap": 0.25
-            }):
+        for sentence in Chunker("./test/t1.txt"):
             c.append(sentence)
 
         s2 = """You may also find version numbers with a “+” suffix, e.g. “2.2+”. These are unreleased versions, 

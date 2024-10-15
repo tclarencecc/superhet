@@ -113,10 +113,7 @@ async def cli():
                     
                 elif arg.command == _CMD_CREATE:
                     async def coro_create():
-                        chunker = Chunker(arg.file, {
-                            "size": 256,
-                            "overlap": 0.15
-                        })
+                        chunker = Chunker(arg.file)
                         embed = Embedding(chunker)
                         await db.create(embed, arg.source)
                     async_task(coro_create())

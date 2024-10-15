@@ -1,34 +1,16 @@
 from typing import Iterable
 
 from app.stream import FileStream
-from app.config import Config
+from app.config import Config, DocumentScript
 from app.util import MutableString
 from app.decorator import benchmark
 
 class Chunker:
-    def __init__(self, input: str, params: dict[str, any]={}):
-        """
-        params:
-            size: int = word count per chunk
-            overlap: float = decimal percentage of overlap in words between chunks
-            alphabet: bool = is document encoded in purely alphabetical script? default true
-            separator: str = document content separator. default \\n\\n
-        """
-        def assign(k: str, dv: any):
-            if k in params:
-                return params[k]
-            else:
-                return dv
-                
-        self._chunk_size = assign("size", Config.CHUNK.SIZE.MIN)
-        self._chunk_overlap = assign("overlap", Config.CHUNK.OVERLAP.MIN)
-        self._alphabet = assign("alphabet", True)
-        separator = assign("separator", "\n\n")
-
+    def __init__(self, input: str):
         self._splitted = []
 
         if input.startswith("./"):
-            self._iterable: Iterable[str] = FileStream(input, separator=separator)
+            self._iterable: Iterable[str] = FileStream(input)
         elif input.startswith("<!DOCTYPE html>"):
             # TODO should be handling http stream here
             raise NotImplementedError
@@ -46,19 +28,15 @@ class Chunker:
             # once _iterable is emptied, StopIteration will be raised and bubbled up
             while len(self._splitted) == 0:
                 self._splitted.extend(
-                    _sliding_window(
-                        next(self._iterable), 
-                        self._chunk_size,
-                        self._chunk_overlap,
-                        self._alphabet
-                    )
+                    _sliding_window(next(self._iterable))
                 )
 
         return self._splitted.pop(0)
 
-def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int]]:
-    stop_marks = "!?."
-    if alphabet == False:
+def _split_to_sentence_weight(input: str) -> list[tuple[str, int]]:
+    if Config.CHUNK.SCRIPT == DocumentScript.LATIN:
+        stop_marks = "!?."
+    elif Config.CHUNK.SCRIPT == DocumentScript.HANZI:
         stop_marks = "！？｡。"
 
     ret = []
@@ -77,10 +55,10 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
                     continue # skip outputting; is part of 'x.x' word
 
             sentence.strip()
-            if alphabet:
+            if Config.CHUNK.SCRIPT == DocumentScript.LATIN:
                 # >1 whitespaces will also count as 'words'. +1 for stop mark
                 count = sentence.split_len(" ") + 1
-            else:
+            elif Config.CHUNK.SCRIPT == DocumentScript.HANZI:
                 count = len(sentence) # whitespaces in between also count as 'word/s'
 
             ret.append((sentence.value(), count))
@@ -88,41 +66,22 @@ def _split_to_sentence_weight(input: str, alphabet: bool) -> list[tuple[str, int
 
     return ret
 
-# https://qwen.readthedocs.io/en/latest/
-# > Stable support of 32K context length for models of all sizes and
-# > up to 128K tokens with Qwen2-7B-Instruct and Qwen2-72B-Instruct
-
-def _sliding_window(input: str, chunk_size: int, overlap: float, alphabet: bool) -> list[str]:
-    if overlap < Config.CHUNK.OVERLAP.MIN or overlap > Config.CHUNK.OVERLAP.MAX:
-        raise ValueError(f"chunker._sliding_window overlap should be "
-            f"between {Config.CHUNK.OVERLAP.MIN} and {Config.CHUNK.OVERLAP.MAX}.")
-    
-    min_cs = Config.CHUNK.SIZE.MIN
-    if alphabet:
-        # assuming a generous 2 token-per-word
-        max_cs = int(Config.LLAMA.EMBEDDING.CONTEXT / 2)
-    else:
-        # multiple chars can be just 1 token; assume worst case 1 token-per-char with small allowance
-        max_cs = int(Config.LLAMA.EMBEDDING.CONTEXT * 0.8)
-        
-    if chunk_size < min_cs or chunk_size > max_cs:
-        raise ValueError(f"chunker._sliding_window chunk_size should be between {min_cs} and {max_cs}.")
-
+def _sliding_window(input: str) -> list[str]:
     ret = []
-    overlap_size = chunk_size * overlap
+    overlap_size = Config.CHUNK.SIZE * Config.CHUNK.OVERLAP
 
-    snt_wgt = _split_to_sentence_weight(input, alphabet)
+    snt_wgt = _split_to_sentence_weight(input)
     idx = 0
     total = 0
     sentence = MutableString()
 
     while idx < len(snt_wgt):
-        if alphabet and sentence.not_empty():
+        if Config.CHUNK.SCRIPT == DocumentScript.LATIN and sentence.not_empty():
             sentence.add(" ")
         sentence.add(snt_wgt[idx][0])
         total += snt_wgt[idx][1]
 
-        if total > chunk_size:
+        if total > Config.CHUNK.SIZE:
             # sentence collected up to this point is enough, output it
             ret.append(sentence.value())
 

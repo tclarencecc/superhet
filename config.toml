@@ -22,3 +22,17 @@ prompt_format = "<prompt format>"
 [llm.embedding]
 # path relative from executable. must be of "gguf" type and for embedding use
 model = "../<model>.gguf"
+
+[document]
+# boundary between paragraphs and chapters
+separator = "<separator>"
+
+# document's written script. valid values: LATIN, HANZI
+script = "<script>"
+
+[document.chunk]
+# number of words per chunk. for latin alphabet documents, is at half of embedding model's token limit
+size = <#>
+
+# percent of words that overlap between chunks. between 0 (no overlap) to 0.25
+overlap = <#>

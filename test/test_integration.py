@@ -18,15 +18,18 @@ class TestIntegration(IsolatedAsyncioTestCase):
         global http
         global database
 
+        def post_config_load():
+            n_embd, n_ctx = Embedding.stats()
+            Config.LLAMA.EMBEDDING.SIZE = n_embd
+            Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
+
+        Config.load_from_toml(post_config_load)
+
+        Config.STRICT_CTX_ONLY = True
+
         http = AsyncClient()
         database = db.Db(http)
         database.start()
-
-        n_embd, n_ctx = Embedding.stats()
-        Config.LLAMA.EMBEDDING.SIZE = n_embd
-        Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
-
-        Config.STRICT_CTX_ONLY = True
 
     @classmethod
     def tearDownClass(cls):
@@ -49,10 +52,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         await db.init()
 
         print("creating..")
-        chunker = Chunker("./test/t1.txt", {
-            "size": 250,
-            "overlap": 0.25
-        })
+        chunker = Chunker("./test/t1.txt")
         embed = Embedding(chunker)
         c_res = await db.create(embed, src)
         self.assertTrue(c_res)
