@@ -1,7 +1,6 @@
 from unittest import TestCase, skipIf
 
-from app.chunker import Chunker, _sliding_window
-from app.stream import FileStream
+from app.chunker import Chunker, FileStream, _sliding_window
 import config_test
 import app.llm as llm
 from app.config import Config
