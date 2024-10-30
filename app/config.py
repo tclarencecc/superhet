@@ -39,6 +39,8 @@ class Config:
         SHELL = "./qdrant"
         KEY = _qdrant_key
         READ_LIMIT = 1
+        # qdrant recommends multitenancy as opposed to multicollection
+        COLLECTION = "my collection"
         # https://qdrant.tech/documentation/guides/configuration/#environment-variables
         ENV = {
             "QDRANT__SERVICE__API_KEY": _qdrant_key,
@@ -102,9 +104,6 @@ class Config:
     BENCHMARK = not in_prod()
 
     PROCESS_STDOUT = False
-
-    # qdrant recommends multitenancy as opposed to multicollection
-    COLLECTION = "my collection"
 
     CLI_CMD_PREFIX = "!"
 

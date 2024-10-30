@@ -73,7 +73,7 @@ class Db:
 
         if url.startswith("http://") == False:
             # is relative path, build full path here
-            url = f"{Config.QDRANT.HOST}/collections/{Config.COLLECTION.replace(" ", "%20")}{url}"
+            url = f"{Config.QDRANT.HOST}/collections/{Config.QDRANT.COLLECTION.replace(" ", "%20")}{url}"
 
         headers = { "api-key": Config.QDRANT.KEY }
         
