@@ -13,7 +13,6 @@ a = Analysis(
         (".venv/lib/python3.12/site-packages/llama_cpp/lib/libggml.dylib", "llama_cpp/lib")
     ],
     datas=[
-        ("bin/qdrant", "."),
         ("config.toml", ".")
     ],
     hiddenimports=[],
@@ -55,7 +54,7 @@ coll = COLLECT(
 
 shutil.move(f"./dist/{name}/_internal/config.toml", f"./dist/{name}/config.toml")
 
-# print("----- INFO: Building tar.gz archive")
-# src = f"./dist/{name}"
-# with tarfile.open(f"{src}.tar.gz", "w:gz") as tar:
-#    tar.add(src, arcname=os.path.basename(src))
+print("----- INFO: Building tar.gz archive")
+src = f"./dist/{name}"
+with tarfile.open(f"{src}.tar.gz", "w:gz") as tar:
+    tar.add(src, arcname=os.path.basename(src))

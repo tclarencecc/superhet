@@ -2,11 +2,12 @@ import asyncio
 from argparse import ArgumentParser, ArgumentError
 import shlex
 import sys
+import time
 
 from app.chunker import Chunker
 from app.storage import Vector
 from app.llm import Embedding, Completion, Chat
-from app.util import new_async_task, PrintColor
+from app.util import PrintColor
 from app.config import Config
 
 _CMD_HELP = Config.CLI_CMD_PREFIX + "help"
@@ -67,69 +68,61 @@ async def cli():
     delete_parser = sub.add_parser(_CMD_DELETE)
     delete_parser.add_argument("source")
     
-    lock = False # cli edit lock flag
-
-    def callback():
-        nonlocal lock
-        lock = False
-
-    def async_task(coro):
-        nonlocal lock
-        lock = True
-        new_async_task(coro, callback)
-
     chat = Chat()
+
+    # cli edit lock
+    lock_time = 0.0
 
     while True:
         bytes = await reader.read(500)
         
-        # while cli is locked, ignore all user inputs
-        if lock == False:
-            input = bytes.decode("utf-8").replace("\n", "")
+        # if buffered cmd/s are less than X msec from last cmd, its likely inputted while prev cmd is still running
+        if time.time() - lock_time < 0.25:
+            continue
 
+        input = bytes.decode("utf-8").replace("\n", "")
+
+        try:
             try:
-                try:
-                    spl_in = shlex.split(input)
-                except ValueError:
-                    raise _ArgsParserQuery
+                spl_in = shlex.split(input)
+            except ValueError:
+                raise _ArgsParserQuery
 
-                arg = parser.parse_args(spl_in)
-                if arg.command == _CMD_HELP:
-                    parser.print_usage()
+            arg = parser.parse_args(spl_in)
+            
+            # only valid commands can reach this point
+            if arg.command == _CMD_HELP:
+                parser.print_usage()
 
-                elif arg.command == _CMD_LIST:
-                    async def coro_list():
-                        list = Vector().list()
+            elif arg.command == _CMD_LIST:
+                list = Vector().list()
 
-                        print(f"total {len(list)}")
-                        print(f"{'source':<20}  {'rows':>5}")
-                        for li in list:
-                            print(f"{li[0]:<20}  {li[1]:>5}")
-                    async_task(coro_list())
-                    
-                elif arg.command == _CMD_CREATE:
-                    async def coro_create():
-                        chunker = Chunker(arg.file)
-                        embed = Embedding(chunker)
-                        Vector().create(embed, arg.source)
-                    async_task(coro_create())
+                print(f"total {len(list)}")
+                print(f"{'source':<20}  {'rows':>5}")
+                for li in list:
+                    print(f"{li[0]:<20}  {li[1]:>5}")
 
-                elif arg.command == _CMD_DELETE:
-                    async def coro_delete():
-                        Vector().delete(arg.source)
-                    async_task(coro_delete())
+            elif arg.command == _CMD_CREATE:
+                chunker = Chunker(arg.file)
+                embed = Embedding(chunker)
+                Vector().create(embed, arg.source)
 
-            except _ArgsParserQuery:
-                    async def coro_read():
-                        vec = Embedding.create(input)
-                        ctx = Vector().read(vec)
-                        completion = Completion()
-                        res = completion(input, ctx, chat)
-                        
-                        for r in res:
-                            PrintColor.BLUE(r, stream=True)
-                        print("\n")
-                    async_task(coro_read())
+            elif arg.command == _CMD_DELETE:
+                Vector().delete(arg.source)
 
-            except ArgumentError as e:
-                print(e.message)
+            lock_time = time.time()
+
+        except _ArgsParserQuery:
+                vec = Embedding.create(input)
+                ctx = Vector().read(vec)
+                completion = Completion()
+                res = completion(input, ctx, chat)
+                
+                for r in res:
+                    PrintColor.BLUE(r, stream=True)
+                print("\n")
+
+                lock_time = time.time()
+                
+        except ArgumentError as e:
+            print(e.message)
