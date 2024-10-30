@@ -48,6 +48,24 @@ class Config:
         }
     QDRANT = _qdrant
 
+    class _storage:
+        SQL = Toml.Spec("storage.data", "./data")
+        INDEX = Toml.Spec("storage.index", "./index")
+        
+        class _hnsw:
+            # hardcoded
+            RESIZE_STEP = 5
+            MIN_DISTANCE = 0.4
+            # https://qdrant.tech/documentation/guides/configuration/
+            M = 16
+            EF_CONSTRUCTION = 100
+            #https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
+            K = 1
+            EF_SEARCH = 3
+            DEBUG = not in_prod()
+        HNSW = _hnsw
+    STORAGE = _storage
+
     class _llama:
         class _completion:
             MODEL = Toml.Spec("llm.completion.model")
@@ -113,11 +131,7 @@ class Config:
         try:
             with Toml(config_path) as t:
                 t.load_to(Config)
-
-                # setup manually parsed config values
-                db_path = t.parse("db.path")
-                Config.QDRANT.ENV["QDRANT__STORAGE__STORAGE_PATH"] = db_path
-                Config.QDRANT.ENV["QDRANT__STORAGE__SNAPSHOTS_PATH"] = f"{db_path}/snapshots"
+                # setup here manually parsed config values
 
             post_load_callback()
 

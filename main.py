@@ -1,9 +1,8 @@
 import asyncio
-from httpx import AsyncClient
 
 from app.config import Config
 from app.cli import cli
-from app.db import Db
+from app.storage import Sql
 import app.llm as llm
 
 async def app():
@@ -15,7 +14,7 @@ async def app():
 
     Config.load_from_toml(post_config_load)
 
-    async with AsyncClient() as client, Db(client):
+    async with Sql():
         await cli()
 
 try:

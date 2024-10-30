@@ -4,7 +4,7 @@ import shlex
 import sys
 
 from app.chunker import Chunker
-import app.db as db
+from app.storage import Vector
 from app.llm import Embedding, Completion, Chat
 from app.util import new_async_task, PrintColor
 from app.config import Config
@@ -31,9 +31,6 @@ class _ArgsParser(ArgumentParser):
             raise ArgumentError(None, message)
 
 async def cli():
-    # wait for qdrant to be ready & prepare collection if it does not exists yet
-    await db.init()
-
     loop = asyncio.get_event_loop()
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
@@ -102,39 +99,36 @@ async def cli():
 
                 elif arg.command == _CMD_LIST:
                     async def coro_list():
-                        list = await db.list()
+                        list = Vector().list()
 
                         print(f"total {len(list)}")
-                        print(f"{'source':<20}  {'rows':>5}  created")
+                        print(f"{'source':<20}  {'rows':>5}")
                         for li in list:
-                            print(f"{li["name"]:<20}  {li["count"]:>5}  {li["timestamp"]}")
-
+                            print(f"{li[0]:<20}  {li[1]:>5}")
                     async_task(coro_list())
                     
                 elif arg.command == _CMD_CREATE:
                     async def coro_create():
                         chunker = Chunker(arg.file)
                         embed = Embedding(chunker)
-                        await db.create(embed, arg.source)
+                        Vector().create(embed, arg.source)
                     async_task(coro_create())
 
                 elif arg.command == _CMD_DELETE:
                     async def coro_delete():
-                        await db.delete(arg.source)
+                        Vector().delete(arg.source)
                     async_task(coro_delete())
 
             except _ArgsParserQuery:
                     async def coro_read():
                         vec = Embedding.create(input)
-                        ctx = await db.read(vec)
-
+                        ctx = Vector().read(vec)
                         completion = Completion()
                         res = completion(input, ctx, chat)
                         
                         for r in res:
                             PrintColor.BLUE(r, stream=True)
                         print("\n")
-
                     async_task(coro_read())
 
             except ArgumentError as e:

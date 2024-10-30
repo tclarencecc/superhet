@@ -1,22 +1,27 @@
 from unittest import IsolatedAsyncioTestCase, skipIf
 import asyncio
-from httpx import AsyncClient
+import os
 
-import app.db as db
+from app.storage import Sql, Vector
 from app.llm import Embedding, Completion, Chat, _NO_CTX_ANS_MSG
 from app.chunker import Chunker
 from app.config import Config
 import config_test
 from app.util import PrintColor
 
-http: AsyncClient = None
-database: db.Db = None
+sql: Sql = None
+
+def cleanup():
+    if os.path.isfile(Config.STORAGE.INDEX):
+        os.remove(Config.STORAGE.INDEX)
+
+    if os.path.isfile(Config.STORAGE.SQL):
+        os.remove(Config.STORAGE.SQL)
 
 class TestIntegration(IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
-        global http
-        global database
+        global sql
 
         def post_config_load():
             n_embd, n_ctx = Embedding.stats()
@@ -26,50 +31,44 @@ class TestIntegration(IsolatedAsyncioTestCase):
         Config.load_from_toml(post_config_load)
 
         Config.STRICT_CTX_ONLY = True
+        Config.STORAGE.SQL = "../data/test_data"
+        Config.STORAGE.INDEX = "../data/test_index"
+        
+        cleanup()
 
-        http = AsyncClient()
-        database = db.Db(http)
-        database.start()
+        sql = Sql()
+        sql.start()
 
     @classmethod
     def tearDownClass(cls):
-        database.stop()
+        sql.stop()
 
     @skipIf(config_test.SKIP_INT_CRUD, "")
-    async def test_crud(self):
+    def test_crud(self):
         # disable 'Executing Task...took # seconds' warning
         asyncio.get_event_loop().set_debug(False)
 
-        collection = "_test_collection_"
         src="python"
         query = "what is python"
-
-        # override default collection and start with a blank collection
-        # repeated create/delete on same collection often results to 
-        # inconsistent search behavior!
-        print("\ninit..")
-        Config.COLLECTION = collection
-        await db.init()
 
         print("creating..")
         chunker = Chunker("./test/t1.txt")
         embed = Embedding(chunker)
-        c_res = await db.create(embed, src)
-        self.assertTrue(c_res)
+        Vector().create(embed, src)
 
         print("listing..")
-        list = await db.list()
+        list = Vector().list()
         inlist = False
         for li in list:
-            if li["name"] == src:
-                self.assertTrue(li["count"] == 7)
+            if li[0] == src:
+                self.assertTrue(li[1] == 7)
                 inlist = True
         
         self.assertTrue(inlist)
 
-        async def read() -> str:
+        def read() -> str:
             vec = Embedding.create(query)
-            ctx = await db.read(vec)
+            ctx = Vector().read(vec)
 
             chat = Chat()
             completion = Completion()
@@ -82,17 +81,14 @@ class TestIntegration(IsolatedAsyncioTestCase):
             return chat.latest.res
 
         print("reading..")
-        ans = await read()
+        ans = read()
         self.assertTrue(ans != _NO_CTX_ANS_MSG)
 
         print("deleting..")
-        self.assertTrue(await db.delete(src))
+        Vector().delete(src)
 
         print("read non-existing..")
-        ans = await read()
+        ans = read()
         self.assertTrue(ans == _NO_CTX_ANS_MSG)
 
-        print("dropping..")
-        await db.drop(collection)
-
-        await http.aclose()
+        cleanup()
