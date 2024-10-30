@@ -85,6 +85,11 @@ class Config:
             # derived from gguf metadata
             CONTEXT = None
             SIZE = None
+
+            # hardcoded
+            # https://onnxruntime.ai/_app/immutable/assets/Phi2_Int4_TokenGenerationTP.ab4c4b44.png
+            # optimal speed at batch size 4, llama cpp vs onnxruntime (1.14x)
+            BATCH_SIZE = 4
         EMBEDDING = _embedding
     LLAMA = _llama
 

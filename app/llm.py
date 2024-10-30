@@ -6,9 +6,6 @@ from collections import deque
 from app.config import Config, PromptFormat
 from app.util import MutableString
 
-# https://onnxruntime.ai/_app/immutable/assets/Phi2_Int4_TokenGenerationTP.ab4c4b44.png
-# at batch size 4, llama cpp embedding approaches speed of onnxruntime (1.14x)
-_BATCH_SIZE = 4
 _NO_CTX_ANS_MSG = "Unable to answer the question as there is not enough context provided."
 
 class Chat:
@@ -226,7 +223,7 @@ class Embedding:
         chunks = []
         vectors = []
 
-        for _ in range(_BATCH_SIZE):
+        for _ in range(Config.LLAMA.EMBEDDING.BATCH_SIZE):
             chunk = next(self._iterable, None)
             if chunk is None:
                 self._eof = True
