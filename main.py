@@ -15,7 +15,9 @@ async def app():
     Config.load_from_toml(post_config_load)
 
     async with Sql():
-        await cli()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(await cli())
+        # run more inf loops as needed
 
 try:
     asyncio.run(app())
