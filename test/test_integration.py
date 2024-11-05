@@ -3,7 +3,7 @@ import asyncio
 import os
 
 from app.storage import Sql, Vector
-from app.llm import Embedding, Completion, Chat, _NO_CTX_ANS_MSG
+from app.llm import Embedding, Completion, Chat
 from app.chunker import Chunker
 from app.config import Config
 import config_test
@@ -66,8 +66,8 @@ class TestIntegration(IsolatedAsyncioTestCase):
         
         self.assertTrue(inlist)
 
-        def read() -> str:
-            vec = Embedding.create(query)
+        def read():
+            vec = Embedding.from_string(query)
             ctx = Vector().read(vec)
 
             chat = Chat()
@@ -78,17 +78,17 @@ class TestIntegration(IsolatedAsyncioTestCase):
                 PrintColor.BLUE(r, stream=True)
             print("\n")
 
-            return chat.latest.res
+            return chat.latest.answer
 
         print("reading..")
         ans = read()
-        self.assertTrue(ans != _NO_CTX_ANS_MSG)
+        self.assertTrue(type(ans) is str)
 
         print("deleting..")
         Vector().delete(src)
 
         print("read non-existing..")
         ans = read()
-        self.assertTrue(ans == _NO_CTX_ANS_MSG)
+        self.assertTrue(ans is None)
 
         cleanup()

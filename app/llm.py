@@ -1,5 +1,5 @@
-from llama_cpp import Llama, CreateEmbeddingResponse
-from typing import Iterable, Callable, Iterator
+from llama_cpp import Llama
+from typing import Iterable, Iterator
 import time
 from collections import deque
 
@@ -169,36 +169,37 @@ class Completion:
 
 
 class Embedding:
+    _instance = None
+
     @staticmethod
     def _llm() -> Llama:
-        return Llama(Config.LLAMA.EMBEDDING.MODEL,
-            n_gpu_layers=-1,
-            n_ctx=0,
-            embedding=True,
-            verbose=False
-        )
-    
-    @staticmethod
-    def _creator() -> Callable[[str | list[str], str | None], CreateEmbeddingResponse]:
-        return Embedding._llm().create_embedding
-    
+        if Embedding._instance is None:
+            Embedding._instance = Llama(Config.LLAMA.EMBEDDING.MODEL,
+                n_gpu_layers=-1,
+                n_ctx=0,
+                embedding=True,
+                verbose=False
+            )
+        return Embedding._instance
+        
     @staticmethod
     def stats() -> tuple[int, int]:
         """
+        stats of the embedding model\n
         returns: [embedding dimension, context length]
         """
-        llm = Embedding._llm()
-        return (llm._model.n_embd(), llm._model.n_ctx_train())
+        return (Embedding._llm()._model.n_embd(), Embedding._llm()._model.n_ctx_train())
 
     @staticmethod
-    def create(input: str) -> list[float]:
-        create_embedding = Embedding._creator()
-        res = create_embedding(input)
+    def from_string(input: str) -> list[float]:
+        """
+        adhoc convert single string to vector
+        """
+        res = Embedding._llm().create_embedding(input)
         return res["data"][0]["embedding"]
 
     def __init__(self, input: Iterable[str]):
         self._iterable = input
-        self._create_embedding = Embedding._creator()
         self._eof = False
 
     def __iter__(self):
@@ -217,7 +218,7 @@ class Embedding:
                 self._eof = True
                 break
 
-            res = self._create_embedding(chunk)
+            res = Embedding._llm().create_embedding(chunk)
             chunks.append(chunk)
             vectors.append(res["data"][0]["embedding"])
 

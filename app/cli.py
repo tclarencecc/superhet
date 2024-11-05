@@ -106,14 +106,16 @@ async def cli():
                 chunker = Chunker(arg.file)
                 embed = Embedding(chunker)
                 Vector().create(embed, arg.source)
+                print("done")
 
             elif arg.command == _CMD_DELETE:
                 Vector().delete(arg.source)
+                print("done")
 
             lock_time = time.time()
 
         except _ArgsParserQuery:
-                vec = Embedding.create(input)
+                vec = Embedding.from_string(input)
                 ctx = Vector().read(vec)
                 completion = Completion()
                 res = completion(input, ctx, chat)
