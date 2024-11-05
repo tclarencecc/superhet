@@ -10,22 +10,13 @@ _NO_CTX_ANS_MSG = "Unable to answer the question as there is not enough context 
 
 class Chat:
     class Entry:
-        def __init__(self, req: str):
-            self.req = req
-            self.res = ""
-            self.ctx_ans = True
+        def __init__(self, query: str):
+            self.query = query
+            self.cot = ""
+            self.answer: any = None # can be of any type depending on usage
 
     def __init__(self):
         self._deque: deque[Chat.Entry] = deque([], Config.CHAT_HISTORY_SIZE)
-
-    @property
-    def output_tag(self) -> str:
-        if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
-            return "[output]"
-        elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
-            return "[output]"
-        elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.LLAMA:
-            return "**output**"
         
     @property
     def latest(self) -> Entry | None:
@@ -35,98 +26,92 @@ class Chat:
                 last = v
 
         return last
+    
+    def _prompt_formatter(self, query: str, ctx: str, cot=False, history=False) -> str:
+        ctx = f"Context: {ctx}" if ctx != "" else ""
 
-    def request(self, query: str, ctx: str) -> str | None:
-        # ctx his scenario
-        # 0   0   1st query
-        #         1) strict: no ans
-        #         2) not:    free
-        # 0   1   nth query, follow up
-        #         strict:
-        #           3) prev no:        no ans
-        #           4) prev with:      ctx only = prev res
-        #         5) not:    free
-        # 1   0   1st query
-        # 1   1   nth, follow up
-        #         6) all:    ctx only
-
-        if ctx == "" and Config.STRICT_CTX_ONLY:
-            if self.latest is None:
-                self._deque.append(Chat.Entry(query))
-                return # 1
-            elif not self.latest.ctx_ans:
-                self._deque.append(Chat.Entry(query))
-                return # 3
-            else:
-                ctx = f"Context: {self.latest.res}" # 4
-        else:
-            ctx = f"Context: {ctx}" if ctx != "" else "" # 2,5 = "", 6 = ctx
-
-        only = " Answer using provided context only." if ctx != "" else "" # 4,6
-        
         cot = """You are an AI assistant designed to provide detailed, step-by-step responses.
 First, use a [thinking] section to analyze the question and outline your approach.
 Second, use a [steps] section to list how to solve the problem using a Chain of Thought reasoning process.
 Third, use a [reflection] section where you review reasoning, check for errors, and confirm or adjust conclusions.
-Fourth, provide the final answer in an [output] section."""
+Fourth, provide the final answer in an [output] section.""" if cot else ""
+        
+        only = "Answer using provided context only." if ctx != "" else ""
 
-        # use {req} {res} as placeholders
-        def reqres(template: str, input: MutableString):
-            for v in self._deque:
-                if v is not None:
-                    input.add(template.format(req=v.req, res=v.res))
+        ret = MutableString()
 
-        prompt = MutableString()
+        def hist(fn):
+            if history:
+                for v in self._deque:
+                    if v is not None:
+                        ret.add(fn(v.query, v.cot))
 
         if Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.CHATML:
             # <|im_start|>system
-            # {}
-            # <|im_end|>
+            # {}<|im_end|>
             # <|im_start|>user
-            # {}
-            # <|im_end|>
+            # {}<|im_end|>
             # <|im_start|>assistant
-
-            # qwen often forgets system prompt cot in long conversations, add it to user prompt instead
-            #prompt.add(f"<|im_start|>system\n{cot}<|im_end|>")
-            reqres("<|im_start|>user\n{req}<|im_end|><|im_start|>assistant\n{res}<|im_end|>",
-                prompt)
-            prompt.add(f"<|im_start|>user\n{cot}\n{ctx}\n{query}{only}<|im_end|><|im_start|>assistant")
+            def template(req, res=None):
+                return f"""<|im_start|>user
+{req}<|im_end|><|im_start|>assistant
+{f'{res}<|im_end|>' if res is not None else ''}"""
+            
+            # qwen forgets system prompt if lengthy history is present
+            hist(template)
+            ret.add(template(f"{cot}\n{ctx}\n{query}\n{only}"))
         
         elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
             # <start_of_turn>user
-            # {}
             # {}<end_of_turn>
             # <start_of_turn>model
+            def template(req, res=None):
+                return f"""<start_of_turn>user
+{req}<end_of_turn><start_of_turn>model
+{f'{res}<end_of_turn>' if res is not None else ''}"""
 
-            reqres("<start_of_turn>user\n{req}<end_of_turn><start_of_turn>model\n{res}<end_of_turn>",
-                prompt)
-            prompt.add(f"<start_of_turn>user\n{cot}\n{ctx}\n{query}{only}<end_of_turn><start_of_turn>model")
+            hist(template)
+            # gemma has no system prompt, add to user prompt instead
+            ret.add(template(f"{cot}\n{ctx}\n{query}\n{only}"))
 
         elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.LLAMA:
             # <|start_header_id|>system<|end_header_id|>{}<|eot_id|>
             # <|start_header_id|>user<|end_header_id|>{}<|eot_id|>
             # <|start_header_id|>assistant<|end_header_id|>
+            def template(req, res=None):
+                return f"""<|start_header_id|>user<|end_header_id|>
+{req}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+{f'{res}<|eot_id|>' if res is not None else ''}"""
+            
+            ret.add(f"<|start_header_id|>system<|end_header_id|>{cot}<|eot_id|>")
+            hist(template)
+            ret.add(template(f"{ctx}\n{query}\n{only}"))
 
-            prompt.add(f"<|start_header_id|>system<|end_header_id|>{cot}<|eot_id|>")
-            reqres("<|start_header_id|>user<|end_header_id|>{req}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{res}<|eot_id|>",
-                prompt)
-            prompt.add(f"<|start_header_id|>user<|end_header_id|>{ctx}\n{query}{only}<|eot_id|><|start_header_id|>assistant<|end_header_id|>")
+        return ret.value()
 
+    def completion_prompt(self, query: str, ctx: str) -> str | None:
+        # ctx stc his
+        # 1   -   -   ctx only
+        # 0   1   0   no ans
+        # 0   1   1   hist as ctx only
+        # 0   0   -   free
+
+        if ctx == "" and Config.STRICT_CTX_ONLY:
+            if self.latest is None or self.latest.cot == "":
+                self._deque.append(Chat.Entry(query))
+                return
+            else:
+                ctx = self.latest.cot
+
+        # build prompt first bef adding new chat entry so that it doesnt bec part of history!
+        ret = self._prompt_formatter(query, ctx, cot=True, history=True)
         self._deque.append(Chat.Entry(query))
 
-        return prompt.value()
-
-    def response(self, value: str):
-        last: Chat.Entry = None
-        for v in self._deque:
-            if v is not None:
-                last = v
-
-        if last is not None:
-            last.res = value
-            if value == _NO_CTX_ANS_MSG:
-                last.ctx_ans = False
+        return ret
+    
+    def extraction_prompt(self) -> str:
+        return self._prompt_formatter("""Extract the output only, do not add anything else.
+If no output can be found, summarize the provided context.""", self.latest.cot)
 
 
 class Completion:
@@ -147,11 +132,10 @@ class Completion:
         )
 
     def __call__(self, query: str, ctx: str, chat: Chat) -> Iterator[str]:
-        prompt = chat.request(query, ctx)
+        prompt = chat.completion_prompt(query, ctx)
         if prompt is None:
-            chat.response(_NO_CTX_ANS_MSG)
             yield f"\n{_NO_CTX_ANS_MSG}"
-
+            
         else:
             res = self._llm.create_completion(prompt,
                 max_tokens=None,
@@ -160,24 +144,28 @@ class Completion:
             )
 
             count = 0
-            comp = MutableString()
+            cot = MutableString()
             t = time.time()
 
             while (r := next(res, None)) is not None:
                 count += 1
                 v = r["choices"][0]["text"]
-                comp.add(v)
+                cot.add(v)
                 yield v
 
-            t = time.time() - t
+            chat.latest.cot = cot.value()
+            t = time.time() - t # completion done at this point, time it
+
+            res = self._llm.create_completion(chat.extraction_prompt(),
+                max_tokens=None,
+                temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
+                stream=False
+            )
+
+            chat.latest.answer = res["choices"][0]["text"]
+            #print(f"\n{chat.latest.answer}")
+            
             yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
-
-            # comp: xxx<output tag>yyy
-            raw = comp.value().lower()
-
-            spl_raw = raw.split(chat.output_tag)
-            if len(spl_raw) == 2:
-                chat.response(spl_raw[1].strip())
 
 
 class Embedding:
