@@ -39,6 +39,8 @@ class TestIntegration(IsolatedAsyncioTestCase):
         sql = Sql()
         sql.start()
 
+        _ = Completion._llm()
+
     @classmethod
     def tearDownClass(cls):
         sql.stop()
@@ -71,8 +73,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
             ctx = Vector().read(vec)
 
             chat = Chat()
-            completion = Completion()
-            res = completion(query, ctx, chat)
+            res = Completion.run(query, ctx, chat)
 
             for r in res:
                 PrintColor.BLUE(r, stream=True)

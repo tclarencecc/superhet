@@ -18,10 +18,16 @@ class Sql:
         self._cursor: sqlite3.Cursor = None
 
     def start(self):
+        if Config.DEBUG:
+            print("connecting to sql")
+        
         self._conn = sqlite3.Connection(Config.STORAGE.SQL)
         self._cursor = self._conn.cursor()
 
     def stop(self):
+        if Config.DEBUG:
+            print("disconnecting from sql")
+        
         self._conn.close()
 
     # implement enter & exit as async since Sql "with"-wraps asyncio internals
@@ -75,7 +81,7 @@ class Vector:
             self._hnsw.load(Config.STORAGE.INDEX, allow_replace_deleted=True)
         except RuntimeError:
             # index file loading failed, initialize first then save file
-            if Config.STORAGE.HNSW.DEBUG:
+            if Config.DEBUG:
                 print("creating hnsw index")
             
             self._hnsw.init_index(Config.STORAGE.HNSW.RESIZE_STEP,
@@ -103,7 +109,7 @@ class Vector:
                 ids.append(id)
             
             if count + self._hnsw.element_count >= self._hnsw.max_elements:
-                if Config.STORAGE.HNSW.DEBUG:
+                if Config.DEBUG:
                     print(f"resizing hnsw index to {self._hnsw.max_elements + Config.STORAGE.HNSW.RESIZE_STEP}")
                 self._hnsw.resize(self._hnsw.max_elements + Config.STORAGE.HNSW.RESIZE_STEP)
 

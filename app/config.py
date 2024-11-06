@@ -64,7 +64,6 @@ class Config:
             #https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
             K = 1
             EF_SEARCH = 3
-            DEBUG = not in_prod()
         HNSW = _hnsw
     STORAGE = _storage
 
@@ -115,6 +114,8 @@ class Config:
     STRICT_CTX_ONLY = False
 
     CHAT_HISTORY_SIZE = 2
+
+    DEBUG = not in_prod()
 
 
     @staticmethod

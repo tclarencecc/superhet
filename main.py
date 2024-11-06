@@ -4,6 +4,7 @@ from app.config import Config
 from app.cli import cli
 from app.storage import Sql
 import app.llm as llm
+from app.llm import Completion, Embedding
 
 async def app():
     def post_config_load():
@@ -13,6 +14,10 @@ async def app():
         Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
 
     Config.load_from_toml(post_config_load)
+
+    # init static instances
+    _ = Completion._llm()
+    _ = Embedding._llm()
 
     async with Sql():
         loop = asyncio.get_event_loop()

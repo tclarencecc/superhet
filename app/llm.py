@@ -5,6 +5,7 @@ from collections import deque
 
 from app.config import Config, PromptFormat
 from app.util import MutableString
+from app.decorator import suppress_print
 
 _NO_CTX_ANS_MSG = "Unable to answer the question as there is not enough context provided."
 
@@ -117,30 +118,50 @@ If no output can be found, summarize the provided context.""", self.latest.cot)
 class Completion:
     _instance = None
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Completion, cls).__new__(cls)
+    @staticmethod
+    def _llm() -> Llama:
+        if Completion._instance is None:
+            @suppress_print(("Model metadata:", "Using gguf chat template:", "Available chat formats",
+                "Using chat eos_token:", "Using chat bos_token:"))
+            def ctor():
+                return Llama(Config.LLAMA.COMPLETION.MODEL,
+                    n_gpu_layers=-1,
+                    n_ctx=Config.LLAMA.COMPLETION.CONTEXT_SIZE,
+                    flash_attn=Config.LLAMA.COMPLETION.FLASH_ATTENTION,
+                    verbose=Config.DEBUG
+                )
+            Completion._instance = ctor()
+            # disable llama_perf_context_print, which logs after each create_completion
+            Completion._instance.verbose = False
 
-        return cls._instance
+        return Completion._instance
 
-    def __init__(self):
-        self._llm = Llama(Config.LLAMA.COMPLETION.MODEL,
-            n_gpu_layers=-1,
-            n_ctx=Config.LLAMA.COMPLETION.CONTEXT_SIZE,
-            flash_attn=Config.LLAMA.COMPLETION.FLASH_ATTENTION,
-            verbose=False
-        )
-
-    def __call__(self, query: str, ctx: str, chat: Chat) -> Iterator[str]:
+    @staticmethod
+    def run(query: str, ctx: str, chat: Chat) -> Iterator[str]:
         prompt = chat.completion_prompt(query, ctx)
         if prompt is None:
             yield f"\n{_NO_CTX_ANS_MSG}"
             
         else:
-            res = self._llm.create_completion(prompt,
+            # grammar = llama_chat_format._grammar_for_response_format({
+            #     "type": "json_object",
+            #     "schema": {
+            #         "type": "object",
+            #         "properties": {
+            #             "thinking": { "type": "string" },
+            #             "steps": { "type": "string" },
+            #             "reflection": { "type": "string" },
+            #             "output": { "type": "string" }
+            #         },
+            #         "required": ["thinking", "steps", "reflection", "output"]
+            #     }
+            # })
+
+            res = Completion._llm().create_completion(prompt,
                 max_tokens=None,
                 temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
-                stream=True
+                stream=True,
+                #grammar=grammar
             )
 
             count = 0
@@ -156,7 +177,7 @@ class Completion:
             chat.latest.cot = cot.value()
             t = time.time() - t # completion done at this point, time it
 
-            res = self._llm.create_completion(chat.extraction_prompt(),
+            res = Completion._llm().create_completion(chat.extraction_prompt(),
                 max_tokens=None,
                 temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
                 stream=False

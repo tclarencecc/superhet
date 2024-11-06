@@ -117,8 +117,7 @@ async def cli():
         except _ArgsParserQuery:
                 vec = Embedding.from_string(input)
                 ctx = Vector().read(vec)
-                completion = Completion()
-                res = completion(input, ctx, chat)
+                res = Completion.run(input, ctx, chat)
                 
                 for r in res:
                     PrintColor.BLUE(r, stream=True)

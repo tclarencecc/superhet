@@ -4,6 +4,7 @@ import subprocess
 import shlex
 import signal
 import time
+import builtins
 
 from app.config import Config
 from app.util import print_duration
@@ -79,5 +80,23 @@ def extprocess(args: list[tuple[str, str]]):
                 for proc in procs:
                     if proc.wait() != 0:
                         print(f"pid {proc.pid} did not terminate.")
+        return wrapper
+    return decorate
+
+def suppress_print(prefixes: tuple[str, ...]):
+    def decorate(fn):
+        @functools.wraps(fn)
+        def wrapper(*arg, **kwargs):
+            old_print = builtins.print
+            def new_print(values: str, sep=" ", end="\n", file=None, flush=False):
+                 if not values.startswith(prefixes):
+                    old_print(values, sep=sep, end=end, file=file, flush=flush)
+
+            builtins.print = new_print
+            ret = fn(*arg, **kwargs)
+            builtins.print = old_print
+
+            return ret
+
         return wrapper
     return decorate
