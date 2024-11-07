@@ -67,37 +67,42 @@ class Sql:
 
 class Vector:
     _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Vector, cls).__new__(cls)
-
-        return cls._instance
     
-    def __init__(self):
-        self._hnsw = Hnsw("cosine", Config.LLAMA.EMBEDDING.SIZE)
+    @staticmethod
+    def _hnsw() -> Hnsw:
+        if Vector._instance is None:
+            hnsw = Hnsw("cosine", Config.LLAMA.EMBEDDING.SIZE)
+            try:
+                hnsw.load(Config.STORAGE.INDEX, allow_replace_deleted=True)
+                if Config.DEBUG:
+                    print("loaded hnsw index")
 
-        try:
-            self._hnsw.load(Config.STORAGE.INDEX, allow_replace_deleted=True)
-        except RuntimeError:
-            # index file loading failed, initialize first then save file
-            if Config.DEBUG:
-                print("creating hnsw index")
-            
-            self._hnsw.init_index(Config.STORAGE.HNSW.RESIZE_STEP,
-                M=Config.STORAGE.HNSW.M,
-                ef_construction=Config.STORAGE.HNSW.EF_CONSTRUCTION,
-                allow_replace_deleted=True
-            )
-            self._hnsw.ef = Config.STORAGE.HNSW.EF_SEARCH
-            self._save_index()
+            except RuntimeError:
+                # index file loading failed, initialize first then save file
+                if Config.DEBUG:
+                    print("creating hnsw index")
+                
+                hnsw.init_index(Config.STORAGE.HNSW.RESIZE_STEP,
+                    M=Config.STORAGE.HNSW.M,
+                    ef_construction=Config.STORAGE.HNSW.EF_CONSTRUCTION,
+                    allow_replace_deleted=True
+                )
+                hnsw.ef = Config.STORAGE.HNSW.EF_SEARCH
+                hnsw.save(Config.STORAGE.INDEX)
 
-        Sql.exec("CREATE TABLE IF NOT EXISTS vector(document TEXT, source TEXT)")
+            Sql.exec("CREATE TABLE IF NOT EXISTS vector(document TEXT, source TEXT)")
+            Vector._instance = hnsw
 
-    def _save_index(self):
-        self._hnsw.save(Config.STORAGE.INDEX)
+        return Vector._instance
+
+    @staticmethod
+    def _save_index():
+        Vector._hnsw().save(Config.STORAGE.INDEX)
     
-    def create(self, input: Iterable[dict], src: str):
+    @staticmethod
+    def create(input: Iterable[dict], src: str):
+        hnsw = Vector._hnsw()
+
         while (dv := next(input, None)) is not None:
             ids = []
             count = dv["len"]
@@ -108,26 +113,28 @@ class Vector:
                 )
                 ids.append(id)
             
-            if count + self._hnsw.element_count >= self._hnsw.max_elements:
+            if count + hnsw.element_count >= hnsw.max_elements:
                 if Config.DEBUG:
-                    print(f"resizing hnsw index to {self._hnsw.max_elements + Config.STORAGE.HNSW.RESIZE_STEP}")
-                self._hnsw.resize(self._hnsw.max_elements + Config.STORAGE.HNSW.RESIZE_STEP)
+                    print(f"resizing hnsw index to {hnsw.max_elements + Config.STORAGE.HNSW.RESIZE_STEP}")
+                hnsw.resize(hnsw.max_elements + Config.STORAGE.HNSW.RESIZE_STEP)
 
-            self._hnsw.add(dv["vectors"], ids, replace_deleted=True)
+            hnsw.add(dv["vectors"], ids, replace_deleted=True)
 
         # rollback-handling:
         # - sql INSERT fails: sql not committed, hnsw unchanged
         # - hnsw add fails: sql not committed, TODO rollback already added vectors?
-        self._save_index()
+        Vector._save_index()
         Sql.commit()
             
-    def read(self, vector: list[float]) -> str:
+    @staticmethod
+    def read(vector: list[float]) -> str:
+        hnsw = Vector._hnsw()
         ret = ""
         id = None
         dist = Config.STORAGE.HNSW.MIN_DISTANCE
 
         try:
-            ids, dists = self._hnsw.query(vector, k=Config.STORAGE.HNSW.K)
+            ids, dists = hnsw.query(vector, k=Config.STORAGE.HNSW.K)
         except RuntimeError:
             # hnswlib knn_query raises this when query returns nothing
             return ret
@@ -147,18 +154,23 @@ class Vector:
 
         return ret
 
-    def delete(self, src: str):
+    @staticmethod
+    def delete(src: str):
+        hnsw = Vector._hnsw()
+
         for id in Sql.exec("SELECT rowid FROM vector WHERE source=?", src, fetch=True): # [(1,) ..]
-            self._hnsw.delete(id[0])
+            hnsw.delete(id[0])
 
         Sql.exec("DELETE FROM vector WHERE source=?", src)
 
         # rollback-handling:
         # - hnsw delete fails: TODO unmark already deleted vectors? sql unchanged
         # - sql DELETE fails: TODO unmark all deleted vectors, sql not committed
-        self._save_index()
+        Vector._save_index()
         Sql.commit()
 
-    def list(self) -> list[tuple[str, int]]:
+    @staticmethod
+    def list() -> list[tuple[str, int]]:
+        _ = Vector._hnsw() # ensure hnsw is init'ed before any ops are done
         # [(src, count) ..]
         return Sql.exec("SELECT source, COUNT(*) AS count FROM vector GROUP BY source ORDER BY count", fetch=True)

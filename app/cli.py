@@ -95,7 +95,7 @@ async def cli():
                 parser.print_usage()
 
             elif arg.command == _CMD_LIST:
-                list = Vector().list()
+                list = Vector.list()
 
                 print(f"total {len(list)}")
                 print(f"{'source':<20}  {'rows':>5}")
@@ -105,18 +105,18 @@ async def cli():
             elif arg.command == _CMD_CREATE:
                 chunker = Chunker(arg.file)
                 embed = Embedding(chunker)
-                Vector().create(embed, arg.source)
+                Vector.create(embed, arg.source)
                 print("done")
 
             elif arg.command == _CMD_DELETE:
-                Vector().delete(arg.source)
+                Vector.delete(arg.source)
                 print("done")
 
             lock_time = time.time()
 
         except _ArgsParserQuery:
                 vec = Embedding.from_string(input)
-                ctx = Vector().read(vec)
+                ctx = Vector.read(vec)
                 res = Completion.run(input, ctx, chat)
                 
                 for r in res:

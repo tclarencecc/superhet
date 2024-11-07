@@ -53,13 +53,13 @@ class TestIntegration(IsolatedAsyncioTestCase):
         src="python"
         query = "what is python"
 
-        print("creating..")
+        print("\ncreating..")
         chunker = Chunker("./test/t1.txt")
         embed = Embedding(chunker)
-        Vector().create(embed, src)
+        Vector.create(embed, src)
 
         print("listing..")
-        list = Vector().list()
+        list = Vector.list()
         inlist = False
         for li in list:
             if li[0] == src:
@@ -70,7 +70,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
 
         def read():
             vec = Embedding.from_string(query)
-            ctx = Vector().read(vec)
+            ctx = Vector.read(vec)
 
             chat = Chat()
             res = Completion.run(query, ctx, chat)
@@ -86,7 +86,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         self.assertTrue(type(ans) is str)
 
         print("deleting..")
-        Vector().delete(src)
+        Vector.delete(src)
 
         print("read non-existing..")
         ans = read()
