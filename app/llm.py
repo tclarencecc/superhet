@@ -90,7 +90,7 @@ Fourth, provide the final answer in an [output] section.""" if cot else ""
 
         return ret.value()
 
-    def completion_prompt(self, query: str, ctx: str) -> str | None:
+    def completion_prompt(self, query: str, ctx: str, cot: bool) -> str | None:
         # ctx stc his
         # 1   -   -   ctx only
         # 0   1   0   no ans
@@ -105,14 +105,17 @@ Fourth, provide the final answer in an [output] section.""" if cot else ""
                 ctx = self.latest.cot
 
         # build prompt first bef adding new chat entry so that it doesnt bec part of history!
-        ret = self._prompt_formatter(query, ctx, cot=True, history=True)
+        ret = self._prompt_formatter(query, ctx, cot=cot, history=True)
         self._deque.append(Chat.Entry(query))
 
         return ret
     
     def extraction_prompt(self) -> str:
         return self._prompt_formatter("""Extract the output only, do not add anything else.
-If no output can be found, summarize the provided context.""", self.latest.cot)
+If no output can be found, summarize the context.""", self.latest.cot)
+    
+    def classify_prompt(self, query: str) -> str:
+        return self._prompt_formatter(f"Classify the intent of '{query}' as 'QUERY' or 'FEEDBACK' only.", "")
 
 
 class Completion:
@@ -138,30 +141,33 @@ class Completion:
 
     @staticmethod
     def run(query: str, ctx: str, chat: Chat) -> Iterator[str]:
-        prompt = chat.completion_prompt(query, ctx)
+        # grammar = llama_chat_format._grammar_for_response_format({
+        #     "type": "json_object",
+        #     "schema": {
+        #         "type": "object",
+        #         "properties": {
+        #             "intent": { "type": "string" },
+        #         },
+        #         "required": ["intent"]
+        #     }
+        # })
+
+        res = Completion._llm().create_completion(chat.classify_prompt(query),
+            max_tokens=None,
+            temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
+            stream=False
+        )
+        is_q = True if res["choices"][0]["text"] == "QUERY" else False
+
+        prompt = chat.completion_prompt(query, ctx, cot=is_q)
         if prompt is None:
             yield f"\n{_NO_CTX_ANS_MSG}"
             
         else:
-            # grammar = llama_chat_format._grammar_for_response_format({
-            #     "type": "json_object",
-            #     "schema": {
-            #         "type": "object",
-            #         "properties": {
-            #             "thinking": { "type": "string" },
-            #             "steps": { "type": "string" },
-            #             "reflection": { "type": "string" },
-            #             "output": { "type": "string" }
-            #         },
-            #         "required": ["thinking", "steps", "reflection", "output"]
-            #     }
-            # })
-
             res = Completion._llm().create_completion(prompt,
                 max_tokens=None,
                 temperature=Config.LLAMA.COMPLETION.TEMPERATURE,
-                stream=True,
-                #grammar=grammar
+                stream=True
             )
 
             count = 0
