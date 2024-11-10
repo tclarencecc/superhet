@@ -113,7 +113,7 @@ class Config:
 
     STRICT_CTX_ONLY = False
 
-    CHAT_HISTORY_SIZE = 2
+    CHAT_HISTORY_SIZE = 5
 
     DEBUG = not in_prod()
 
