@@ -1,9 +1,9 @@
 from unittest import TestCase, skipIf
 
-from app.chunker import Chunker, FileStream, _sliding_window
+from agent.chunker import Chunker, FileStream, _sliding_window
 import config_test
-import app.llm as llm
-from app.config import Config
+import agent.llm as llm
+from agent.config import Config
 
 class TestChunker(TestCase):
     @classmethod

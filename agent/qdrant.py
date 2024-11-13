@@ -8,7 +8,7 @@ import subprocess
 import shlex
 import signal
 
-from app.config import Config
+from agent.config import Config
 from common.helper import timestamp
 from common.decorator import benchmark
 

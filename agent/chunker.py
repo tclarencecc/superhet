@@ -1,7 +1,7 @@
 from typing import Iterable
 from io import StringIO
 
-from app.config import Config, DocumentScript
+from agent.config import Config, DocumentScript
 from common.string import MutableString
 
 class Chunker:

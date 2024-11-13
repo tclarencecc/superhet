@@ -3,7 +3,7 @@ from typing import Iterable, Iterator
 import time
 from collections import deque
 
-from app.config import Config, PromptFormat
+from agent.config import Config, PromptFormat
 from common.string import MutableString
 from common.decorator import suppress_print
 

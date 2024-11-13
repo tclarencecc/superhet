@@ -1,9 +1,9 @@
 import asyncio
 
-from app.config import Config
-from app.cli import cli
-from app.storage import Sql
-from app.llm import Completion, Embedding
+from agent.config import Config
+from agent.cli import cli
+from agent.storage import Sql
+from agent.llm import Completion, Embedding
 
 async def main():
     def post_config_load():

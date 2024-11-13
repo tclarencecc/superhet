@@ -4,10 +4,10 @@ import shlex
 import sys
 import time
 
-from app.chunker import Chunker
-from app.storage import Vector
-from app.llm import Embedding, Completion, Chat
-from app.config import Config
+from agent.chunker import Chunker
+from agent.storage import Vector
+from agent.llm import Embedding, Completion, Chat
+from agent.config import Config
 from common.helper import PrintColor
 
 _CMD_HELP = Config.CLI_CMD_PREFIX + "help"

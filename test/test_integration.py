@@ -2,10 +2,10 @@ from unittest import IsolatedAsyncioTestCase, skipIf
 import asyncio
 import os
 
-from app.storage import Sql, Vector
-from app.llm import Embedding, Completion, Chat
-from app.chunker import Chunker
-from app.config import Config
+from agent.storage import Sql, Vector
+from agent.llm import Embedding, Completion, Chat
+from agent.chunker import Chunker
+from agent.config import Config
 import config_test
 from common.helper import PrintColor
 

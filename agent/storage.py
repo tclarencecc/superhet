@@ -1,8 +1,8 @@
 import sqlite3
 from typing import Iterable
 
-from app.config import Config
-from app.c_wrapper import Hnsw
+from agent.config import Config
+from agent.c_wrapper import Hnsw
 
 class Sql:
     _instance = None

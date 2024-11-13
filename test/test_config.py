@@ -1,7 +1,7 @@
 from unittest import TestCase, skipIf
 
 import config_test
-from app.config import PromptFormat
+from agent.config import PromptFormat
 from common.toml import Toml
 
 class TestConfig(TestCase):
