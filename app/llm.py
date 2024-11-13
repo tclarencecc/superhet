@@ -4,13 +4,14 @@ import time
 from collections import deque
 
 from app.config import Config, PromptFormat
-from app.util import MutableString
-from app.decorator import suppress_print
+from common.string import MutableString
+from common.decorator import suppress_print
 
 class Chat:
     class Entry:
         def __init__(self):
             self.query = ""
+            self.context = ""
             self.cot = ""
             self.answer = ""
 
@@ -96,7 +97,7 @@ class Completion:
             prompt.add(f"<|im_start|>system\n{system}<|im_end|>")
             hist(template)
             prompt.add(template(user))
-        
+
         elif Config.LLAMA.COMPLETION.PROMPT_FORMAT == PromptFormat.GEMMA:
             # <start_of_turn>user
             # {}<end_of_turn>
@@ -142,6 +143,7 @@ class Completion:
 
         if ctx == "":
             if Config.STRICT_CTX_ONLY:
+                #If user question requires analysis, do not answer and say 'Not enough context to answer the question'
                 ex = Completion._exec(query, chat=chat, system="""You are a helpful AI assistant.
 If user question requires analysis, do not answer and say you lack context.""")
             else:
@@ -164,6 +166,7 @@ If user question requires analysis, {cot}.""")
 
         entry = Chat.Entry()
         entry.query = query
+        entry.context = ctx
         entry.cot = cot.value()
         entry.answer = Completion._exec(f"""Context: {entry.cot}
 Extract the output only, do not add anything. If no output can be found, summarize the context.""").static

@@ -9,8 +9,8 @@ import shlex
 import signal
 
 from app.config import Config
-from app.util import timestamp
-from app.decorator import benchmark
+from common.helper import timestamp
+from common.decorator import benchmark
 
 _UUID0 = uuid.UUID(int=0).hex
 
@@ -123,7 +123,7 @@ async def init():
             }]
         })
 
-@benchmark("db create")
+@benchmark("db create", Config.BENCHMARK)
 async def create(input: Iterable[dict], src: str) -> bool:
     """
     dict attributes:\n
@@ -181,7 +181,7 @@ async def list() -> list[any]:
 
     return res[0]["payload"]["sources"]
 
-@benchmark("db delete")
+@benchmark("db delete", Config.BENCHMARK)
 async def delete(src: str) -> bool:
     await Db.http(Db.Meth.POST, "/points/delete?wait=true", {
         "filter": {

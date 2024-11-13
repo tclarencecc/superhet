@@ -2,8 +2,7 @@ from typing import Iterable
 from io import StringIO
 
 from app.config import Config, DocumentScript
-from app.util import MutableString
-from app.decorator import benchmark
+from common.string import MutableString
 
 class Chunker:
     def __init__(self, input: str):
@@ -21,7 +20,6 @@ class Chunker:
     def __iter__(self):
         return self
 
-    # @benchmark("chunker next")
     def __next__(self):
         if len(self._splitted) == 0:
             # repeat call on next(_iterable) until _splitted is filled up

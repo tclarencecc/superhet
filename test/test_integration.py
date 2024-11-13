@@ -7,7 +7,7 @@ from app.llm import Embedding, Completion, Chat
 from app.chunker import Chunker
 from app.config import Config
 import config_test
-from app.util import PrintColor
+from common.helper import PrintColor
 
 sql: Sql = None
 
@@ -79,17 +79,17 @@ class TestIntegration(IsolatedAsyncioTestCase):
                 PrintColor.BLUE(r, stream=True)
             print("\n")
 
-            return chat.latest.answer
+            return chat.latest
 
         print("reading..")
-        ans = read()
-        self.assertTrue(type(ans) is str)
+        latest = read()
+        self.assertTrue(latest.answer != "" and latest.context != "")
 
         print("deleting..")
         Vector.delete(src)
 
         print("read non-existing..")
-        ans = read()
-        self.assertTrue(ans is None)
+        latest = read()
+        self.assertTrue(latest.context == "")
 
         cleanup()

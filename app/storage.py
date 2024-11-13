@@ -2,7 +2,7 @@ import sqlite3
 from typing import Iterable
 
 from app.config import Config
-from app.util import Hnsw
+from app.c_wrapper import Hnsw
 
 class Sql:
     _instance = None

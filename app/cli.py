@@ -7,8 +7,8 @@ import time
 from app.chunker import Chunker
 from app.storage import Vector
 from app.llm import Embedding, Completion, Chat
-from app.util import PrintColor
 from app.config import Config
+from common.helper import PrintColor
 
 _CMD_HELP = Config.CLI_CMD_PREFIX + "help"
 _CMD_LIST = Config.CLI_CMD_PREFIX + "list"

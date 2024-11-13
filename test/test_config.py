@@ -2,7 +2,7 @@ from unittest import TestCase, skipIf
 
 import config_test
 from app.config import PromptFormat
-from app.util import Toml
+from common.toml import Toml
 
 class TestConfig(TestCase):
 

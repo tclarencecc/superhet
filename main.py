@@ -5,7 +5,7 @@ from app.cli import cli
 from app.storage import Sql
 from app.llm import Completion, Embedding
 
-async def app():
+async def main():
     def post_config_load():
         # setup non-toml based config values
         n_embd, n_ctx = Embedding.stats()
@@ -22,6 +22,6 @@ async def app():
         # run more inf loops as needed
 
 try:
-    asyncio.run(app())
+    asyncio.run(main())
 except KeyboardInterrupt:
     pass

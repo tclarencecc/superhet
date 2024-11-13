@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from enum import Enum
 from typing import Callable
 
-from app.util import Toml
+from common.toml import Toml
 
 _qdrant_key = uuid.uuid4().hex
 
