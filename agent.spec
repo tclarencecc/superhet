@@ -3,10 +3,10 @@ import shutil
 import tarfile
 import os
 
-name = "main"
+name = "agent"
 
 a = Analysis(
-    ["main.py"],
+    ["agent.py"],
     pathex=[],
     binaries=[
         (".venv/lib/python3.12/site-packages/llama_cpp/lib/libllama.dylib", "llama_cpp/lib"),

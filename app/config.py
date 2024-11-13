@@ -124,7 +124,7 @@ class Config:
             config_path = "./config.toml" # default same dir as executable
 
             parser = ArgumentParser()
-            parser.add_argument("exe") # ./main itself, just ignore
+            parser.add_argument("exe") # ./agent itself, just ignore
             parser.add_argument("-cfg", "--config", type=str, required=False)
             arg = parser.parse_args(sys.argv)
 

@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: main.py",
+            "name": "Python Debugger: agent.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "main.py",
+            "program": "agent.py",
             "console": "integratedTerminal",
             "args": []
         }
