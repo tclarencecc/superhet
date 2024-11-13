@@ -136,22 +136,20 @@ class Completion:
         # ~: implicitly use
         # testing seq: 1-1-2-3-2-1-2
 
-        cot = """use a [thinking] section to analyze the question and outline the approach,
-[steps] section to list how to solve the problem using a Chain of Thought process,
-[reflection] section to review reasoning, check for error, adjust and confirm conclusion,
-[output] section for the final answer"""
-
+        #role = "You are an AI assistant designed to provide detailed, step-by-step responses."
+        cot = """First, use a [thinking] section to analyze the question and outline your approach.
+Second, use a [steps] section to list how to solve the problem using a Chain of Thought reasoning process.
+Third, use a [reflection] section where you review reasoning, check for errors, and confirm or adjust conclusions.
+Fourth, provide the final answer in an [output] section."""
+      
         if ctx == "":
             if Config.STRICT_CTX_ONLY:
-                #If user question requires analysis, do not answer and say 'Not enough context to answer the question'
-                ex = Completion._exec(query, chat=chat, system="""You are a helpful AI assistant.
-If user question requires analysis, do not answer and say you lack context.""")
+                ex = Completion._exec(query, chat=chat,
+system="If question requires analysis, do not answer and say 'Not enough context to answer'.")
             else:
-                ex = Completion._exec(query, chat=chat, system=f"""You are a helpful AI assistant.
-If user question requires analysis, {cot}.""")
+                ex = Completion._exec(query, chat=chat, system=f"If question requires analysis, {cot}")
         else:
-            ex = Completion._exec(f"Context: {ctx}\n{query}? Answer using context only.",
-                system=f"You are a helpful AI assistant, {cot}.")
+            ex = Completion._exec(f"Context: {ctx}\n{query}\nAnswer using context only.", system=cot)
 
         count = 0
         cot = MutableString()
