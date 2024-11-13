@@ -5,10 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: agent.py",
+            "name": "Agent",
             "type": "debugpy",
             "request": "launch",
             "program": "agent.py",
+            "console": "integratedTerminal",
+            "args": []
+        }, {
+            "name": "Relay",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "relay.py",
             "console": "integratedTerminal",
             "args": []
         }

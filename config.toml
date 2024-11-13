@@ -39,3 +39,7 @@ overlap = <#>
 
 # path relative from executable. default is ./index
 #index = "./index"
+
+[server]
+# address of relay server
+host = "<host>"

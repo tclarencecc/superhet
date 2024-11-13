@@ -1,3 +1,6 @@
 llama-cpp-python
 httpx
 hnswlib
+websockets
+starlette
+uvicorn

@@ -105,6 +105,13 @@ class Config:
         OVERLAP = Toml.Spec("document.chunk.overlap")
     CHUNK = _chunk
 
+    class _server:
+        HOST = Toml.Spec("server.host")
+
+        # hardcoded
+        ENDPOINT = "/ws"
+    SERVER = _server
+
     BENCHMARK = not in_prod()
 
     PROCESS_STDOUT = False

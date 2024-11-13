@@ -30,11 +30,10 @@ class Sql:
         
         self._conn.close()
 
-    # implement enter & exit as async since Sql "with"-wraps asyncio internals
-    async def __aenter__(self):
+    def __enter__(self):
         self.start()
         
-    async def __aexit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback):
         self.stop()
 
     @staticmethod

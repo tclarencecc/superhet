@@ -1,5 +1,7 @@
 import time
 from datetime import datetime, timezone
+import asyncio
+from typing import Coroutine, Callable
 
 class PrintColor:
     @staticmethod
@@ -50,3 +52,19 @@ def timestamp() -> str:
     return datetime.now(
         datetime.now(timezone.utc).astimezone().tzinfo
     ).replace(microsecond=0).isoformat()
+
+# https://gist.github.com/harrisont/38ecc65aaad3481c9221417d7c64fef8
+def create_task(coro: Coroutine, loop: asyncio.AbstractEventLoop) -> Callable:
+    async def error_handled_coro():
+        try:
+            return await coro()
+        except asyncio.CancelledError:
+            # on SIGINT task will raise this internally, block here since it will be handled later
+            pass
+
+    task = loop.create_task(error_handled_coro())
+
+    def cancel_handler():
+        task.cancel() # must still be called despite alrdy raising CancelledError
+        loop.run_until_complete(task) # allow to complete then exit
+    return cancel_handler

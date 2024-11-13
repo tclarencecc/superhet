@@ -2,26 +2,30 @@ import asyncio
 
 from agent.config import Config
 from agent.cli import cli
+from agent.server import server
 from agent.storage import Sql
 from agent.llm import Completion, Embedding
+from common.helper import create_task
 
-async def main():
-    def post_config_load():
-        # setup non-toml based config values
-        n_embd, n_ctx = Embedding.stats()
-        Config.LLAMA.EMBEDDING.SIZE = n_embd
-        Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
+def post_config_load():
+    # setup non-toml based config values
+    n_embd, n_ctx = Embedding.stats()
+    Config.LLAMA.EMBEDDING.SIZE = n_embd
+    Config.LLAMA.EMBEDDING.CONTEXT = n_ctx
 
-    Config.load_from_toml(post_config_load)
+Config.load_from_toml(post_config_load)
 
-    _ = Completion._llm() # log llama init now
+_ = Completion._llm() # log llama init now
 
-    async with Sql():
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(await cli())
-        # run more inf loops as needed
+with Sql():
+    loop = asyncio.new_event_loop()
+    t1 = create_task(cli, loop)
+    t2 = create_task(server, loop)
 
-try:
-    asyncio.run(main())
-except KeyboardInterrupt:
-    pass
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        t1()
+        t2()
+    finally:
+        loop.close()
