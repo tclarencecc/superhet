@@ -9,7 +9,8 @@ class AnswerStream:
 
     def update(self, ans: Answer):
         self._end = ans.end
-        self._future.set_result(ans.word)
+        if not self._future.done() and not self._future.cancelled():
+            self._future.set_result(ans.word)
 
     async def generator(self):
         while True:
