@@ -105,12 +105,12 @@ class Config:
         OVERLAP = Toml.Spec("document.chunk.overlap")
     CHUNK = _chunk
 
-    class _server:
-        HOST = Toml.Spec("server.host")
+    class _relay:
+        HOST = Toml.Spec("relay.host")
 
         # hardcoded
         ENDPOINT = "/ws"
-    SERVER = _server
+    RELAY = _relay
 
     BENCHMARK = not in_prod()
 
@@ -162,6 +162,14 @@ class Config:
 
             minmax_validate(Config.CHUNK.OVERLAP, Config.CHUNK.OVERLAP_LIMIT, "[document.chunk] overlap")
             minmax_validate(Config.CHUNK.SIZE, Config.CHUNK.SIZE_LIMIT, "[document.chunk] size")
+
+            # formatters
+            # clean up relay host 'protocol://'<HOST>'/'
+            split_host = str(Config.RELAY.HOST).split("//")
+            if len(split_host) == 2:
+                Config.RELAY.HOST = split_host[1]
+            if str(Config.RELAY.HOST).endswith("/"):
+                Config.RELAY.HOST = str(Config.RELAY.HOST)[:-1]
             
         except Exception as e:
             print(e)
