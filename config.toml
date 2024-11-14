@@ -43,3 +43,6 @@ overlap = <#>
 [relay]
 # address of relay server
 host = "<host>"
+
+# unique name to identify your AI in the relay server
+agent_name = "<agent_name>"

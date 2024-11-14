@@ -107,6 +107,7 @@ class Config:
 
     class _relay:
         HOST = Toml.Spec("relay.host")
+        AGENT_NAME = Toml.Spec("relay.agent_name")
 
         # hardcoded
         ENDPOINT = "/ws"
@@ -170,6 +171,9 @@ class Config:
                 Config.RELAY.HOST = split_host[1]
             if str(Config.RELAY.HOST).endswith("/"):
                 Config.RELAY.HOST = str(Config.RELAY.HOST)[:-1]
+
+            # replace space with _ in agent_name
+            Config.RELAY.AGENT_NAME = str(Config.RELAY.AGENT_NAME).replace(" ", "_")
             
         except Exception as e:
             print(e)

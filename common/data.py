@@ -22,4 +22,5 @@ class Answer(Serde):
     def __init__(self, json_str=""):
         self.id = ""
         self.word = ""
+        self.end = False
         super().__init__(DataType.ANSWER, json_str)

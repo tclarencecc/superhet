@@ -11,8 +11,13 @@ async def server():
     # TODO load chat per user basis
     chat = Chat()
 
+    headers = [
+        ("Agent-Name", Config.RELAY.AGENT_NAME),
+    ]
+
     try:
-        async with connect(f"ws://{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}") as ws:
+        async with connect(f"ws://{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}",
+            additional_headers=headers) as ws:
             while True:
                 msg = await ws.recv()
                 dt = parse_type(msg, DataType)
@@ -31,6 +36,11 @@ async def server():
                         ans.id = query.id
                         ans.word = r
                         await ws.send(ans.json_string())
+
+                    ans = Answer()
+                    ans.id = query.id
+                    ans.end = True
+                    await ws.send(ans.json_string())
                         
     except (InvalidURI, OSError):
         print(f"Unable to connect to {Config.RELAY.HOST}")
