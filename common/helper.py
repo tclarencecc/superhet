@@ -69,8 +69,15 @@ def create_task(coro: Coroutine, loop: asyncio.AbstractEventLoop) -> Callable:
             pass
 
     task = loop.create_task(error_handled_coro())
+    task.set_name(coro.__name__) # set name so cancel_handler can distinguish between "my" tasks and system tasks!
 
     def cancel_handler():
         task.cancel() # on KeyboardInterrupt, task is not yet cancelled. cancel now
-        loop.run_until_complete(task) # allow to complete then exit
+        loop.run_until_complete(task) # allow task to complete then exit
+
+        # catch any system tasks left behind and let them run to completion
+        for t in asyncio.all_tasks(loop):
+            if t.get_name().startswith("Task-"):
+                loop.run_until_complete(t)
+        
     return cancel_handler

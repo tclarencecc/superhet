@@ -10,14 +10,14 @@
             "request": "launch",
             "program": "agent.py",
             "console": "integratedTerminal",
-            "args": []
+            "args": ["--apikey", "key"]
         }, {
             "name": "Relay",
             "type": "debugpy",
             "request": "launch",
             "program": "relay.py",
             "console": "integratedTerminal",
-            "args": []
+            "args": ["--relay-apikey", "key", "--relay-debug"]
         }
     ]
 }

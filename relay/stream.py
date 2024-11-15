@@ -1,6 +1,7 @@
 import asyncio
 
 from common.data import Answer
+from relay.config import Config
 
 class AnswerStream:
     def __init__(self):
@@ -23,5 +24,6 @@ class AnswerStream:
             ret = await self._future
             yield ret
             if self._end:
-                print("answer stream ended")
+                if Config.DEBUG:
+                    print("answer stream ended")
                 break

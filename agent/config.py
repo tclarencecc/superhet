@@ -108,6 +108,7 @@ class Config:
     class _relay:
         HOST = Toml.Spec("relay.host")
         AGENT_NAME = Toml.Spec("relay.agent_name")
+        API_KEY = None # argv derived
 
         # hardcoded
         ENDPOINT = "/ws"
@@ -136,16 +137,18 @@ class Config:
     def load_from_toml(post_load_callback: Callable):
         if in_prod():
             config_path = "./config.toml" # default same dir as executable
-
-            parser = ArgumentParser()
-            parser.add_argument("exe") # ./agent itself, just ignore
-            parser.add_argument("-cfg", "--config", type=str, required=False)
-            arg = parser.parse_args(sys.argv)
-
-            if arg.config is not None:
-                config_path = arg.config
         else:
             config_path = "../dev.toml" # outside project folder
+
+        parser = ArgumentParser()
+        parser.add_argument("exe") # ./agent itself, just ignore
+        parser.add_argument("--config", type=str, required=False)
+        parser.add_argument("--apikey", type=str, required=False)
+        arg = parser.parse_args(sys.argv)
+
+        # override config path if specified
+        if arg.config is not None:
+            config_path = arg.config
 
         try:
             with Toml(config_path) as t:
@@ -161,6 +164,10 @@ class Config:
             elif Config.CHUNK.SCRIPT == DocumentScript.HANZI:
                 # multiple chars can be just 1 token; assume worst case 1 token-per-char with small allowance
                 Config.CHUNK.SIZE_LIMIT.MAX = int(Config.LLAMA.EMBEDDING.CONTEXT * 0.8)
+
+            # setup argv based config values
+            if arg.apikey is not None:
+                Config.RELAY.API_KEY = arg.apikey
 
             # validations
             def minmax_validate(val, limit: _min_max, text: str):
