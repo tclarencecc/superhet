@@ -8,13 +8,14 @@ from common.serde import parse_type
 from common.data import DataType, Notification, Query, Answer
 
 async def server():
-    # TODO load chat per user basis
+    # TODO load chat history on per user basis
     chat = Chat()
 
     headers = [
-        ("Agent-Name", Config.RELAY.AGENT_NAME),
+        (Config.RELAY.HEADER.NAME, Config.RELAY.AGENT_NAME),
     ]
 
+    # TODO reconnect ws on connect fail
     try:
         async with connect(f"ws://{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}",
             additional_headers=headers) as ws:

@@ -111,6 +111,12 @@ class Config:
 
         # hardcoded
         ENDPOINT = "/ws"
+
+        class _header:
+            # hardcoded
+            NAME = "Agent-Name"
+            KEY = "Agent-Apikey"
+        HEADER = _header
     RELAY = _relay
 
     BENCHMARK = not in_prod()

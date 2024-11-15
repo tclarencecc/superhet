@@ -68,6 +68,7 @@ async def cli():
     delete_parser = sub.add_parser(_CMD_DELETE)
     delete_parser.add_argument("source")
     
+    # cli chat history is just for this session
     chat = Chat()
 
     # cli edit lock

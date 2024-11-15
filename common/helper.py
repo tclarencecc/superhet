@@ -60,8 +60,11 @@ def create_task(coro: Coroutine, loop: asyncio.AbstractEventLoop) -> Callable:
             return await coro()
         except Exception as e:
             print(e)
-        # KeyboardInterrupt is not catchable here! but CancelledError is raised after task.cancel()
-        except asyncio.CancelledError:
+
+        # on initial SIGINT, KeyboardInterrupt is NOT raised
+        # CancelledError is raised after task.cancel
+        # KeyboardInterrupt is raised when run_until_complete is still running & SIGINT is called again
+        except (asyncio.CancelledError, KeyboardInterrupt):
             # do nothing as task graceful shutdown is already handled
             pass
 

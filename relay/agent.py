@@ -3,7 +3,7 @@ from starlette.websockets import WebSocket
 
 from common.data import DataType, Notification, Answer
 from common.serde import parse_type
-from relay.stream import Streamers
+from relay.stream import AnswerStream
 
 class AgentEndpoint(WebSocketEndpoint):
     async def on_connect(self, websocket: WebSocket):    
@@ -19,11 +19,11 @@ class AgentEndpoint(WebSocketEndpoint):
     async def on_receive(self, websocket: WebSocket, data: any):
         if parse_type(data, DataType) == DataType.ANSWER:
             ans = Answer(data)
-            anst = Streamers.get(ans.id)
-            if anst is None:
-                raise RuntimeError("on_receive accessing non-existent streamer")
-            else:
-                anst.update(ans)
+            st = Agents.stream(websocket.headers["Agent-Name"], ans.id)
+            st.get().update(ans)
+
+            if ans.end:
+                st.delete()
 
     async def on_disconnect(self, websocket: WebSocket, close_code: int):
         Agents.disconnect(websocket)
@@ -39,26 +39,68 @@ class Agents:
         return Agents._instance
     
     @staticmethod
-    def _has(name: str) -> bool:
+    def has(name: str) -> bool:
         return Agents._dict().get(name, None) is not None
     
-    @staticmethod
-    def get(name: str) -> WebSocket | None:
-        return Agents._dict().get(name, None)
-
     @staticmethod
     def connect(websocket: WebSocket):
         # TODO check Agent-ApiKey
 
         name = websocket.headers["Agent-Name"]
-        if name is None or name == "" or Agents._has(name):
+        if name is None or name == "" or Agents.has(name):
             return False
         else:
-            Agents._dict()[name] = websocket
+            Agents._dict()[name] = {
+                "websocket": websocket,
+                "streams": {}
+            }
+            Agents._debug()
             return True
 
     @staticmethod
     def disconnect(websocket: WebSocket):
         name = websocket.headers["Agent-Name"]
-        if Agents._has(name):
-            del Agents._dict()[name]
+
+        # cancel all available (running) streams
+        streams: dict = Agents._dict()[name]["streams"]
+        for s in streams.keys():
+            anst: AnswerStream = streams[s]
+            anst.cancel()
+
+        del Agents._dict()[name]
+        Agents._debug()
+
+    @staticmethod
+    def websocket(name: str) -> WebSocket:
+        return Agents._dict()[name]["websocket"]
+    
+    @staticmethod
+    def _debug():
+        print(f"Agents: {list(Agents._dict().keys())}")
+
+    
+    class _Stream:
+        def __init__(self, name: str, id: str):
+            self._name = name
+            self._streams: dict = Agents._dict()[name]["streams"]
+            self._id = id
+
+        def new(self) -> AnswerStream:
+            anst = AnswerStream()
+            self._streams[self._id] = anst
+            self._debug()
+            return anst
+        
+        def get(self) -> AnswerStream:
+            return self._streams[self._id]
+        
+        def delete(self):
+            del self._streams[self._id]
+            self._debug()
+
+        def _debug(self):
+            print(f"'{self._name}' streams: {list(self._streams.keys())}")
+        
+    @staticmethod
+    def stream(name: str, id: str) -> _Stream:
+        return Agents._Stream(name, id)
