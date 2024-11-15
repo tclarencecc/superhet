@@ -1,12 +1,13 @@
 from starlette.endpoints import WebSocketEndpoint
 from starlette.websockets import WebSocket
+from starlette.routing import WebSocketRoute
 
 from common.data import DataType, Notification, Answer
 from common.serde import parse_type
 from relay.stream import AnswerStream
 from relay.config import Config
 
-class AgentEndpoint(WebSocketEndpoint):
+class _AgentRoute(WebSocketEndpoint):
     async def on_connect(self, websocket: WebSocket):    
         if Agents.connect(websocket):
             await websocket.accept()
@@ -29,6 +30,8 @@ class AgentEndpoint(WebSocketEndpoint):
 
     async def on_disconnect(self, websocket: WebSocket, close_code: int):
         Agents.disconnect(websocket)
+
+agent_route = WebSocketRoute("/ws", _AgentRoute)
 
 
 class Agents:

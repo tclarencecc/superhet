@@ -41,3 +41,6 @@ class MutableString:
 
     def __len__(self) -> int:
         return self._idx + 1
+
+def not_none_or_empty(input: str) -> bool:
+    return input is not None and input != ""
