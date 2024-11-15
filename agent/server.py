@@ -1,5 +1,5 @@
 from websockets.asyncio.client import connect
-from websockets.exceptions import InvalidURI, InvalidHandshake
+from websockets.exceptions import InvalidURI, InvalidHandshake, ConnectionClosed
 
 from agent.config import Config
 from agent.storage import Vector
@@ -15,10 +15,11 @@ async def server():
         (Config.RELAY.HEADER.NAME, Config.RELAY.AGENT_NAME),
     ]
 
-    # TODO reconnect ws on connect fail
-    try:
-        async with connect(f"ws://{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}",
-            additional_headers=headers) as ws:
+    # connect() already does exponential backoff on connection retries
+    # https://websockets.readthedocs.io/en/stable/reference/asyncio/client.html#
+    async for ws in connect(f"ws://{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}",
+        additional_headers=headers):
+        try:
             while True:
                 msg = await ws.recv()
                 dt = parse_type(msg, DataType)
@@ -42,8 +43,10 @@ async def server():
                     ans.id = query.id
                     ans.end = True
                     await ws.send(ans.json_string())
-                        
-    except (InvalidURI, OSError):
-        print(f"Unable to connect to {Config.RELAY.HOST}")
-    except (InvalidHandshake, TimeoutError):
-        print(f"Error establishing connection with {Config.RELAY.HOST}")
+                    
+        except (InvalidURI, OSError):
+            print(f"Unable to connect to relay ({Config.RELAY.HOST})")
+        except (InvalidHandshake, TimeoutError):
+            print(f"Error establishing connection with relay ({Config.RELAY.HOST})")
+        except ConnectionClosed:
+            print(f"Disconnected from relay ({Config.RELAY.HOST})")
