@@ -1,4 +1,5 @@
 import asyncio
+import base64
 from websockets.asyncio.client import connect
 from websockets.exceptions import InvalidURI, InvalidHandshake, ConnectionClosed
 
@@ -8,6 +9,7 @@ from agent.llm import Embedding, Completion, Chat
 from common.serde import parse_type
 from common.data import DataType, Notification, Query, Answer
 from common.helper import PrintColor
+from common.iter import EndDefIter
 
 async def server():
     # TODO load chat history on per user basis
@@ -40,20 +42,20 @@ async def server():
                         vec = Embedding.from_string(query.text)
                         ctx = Vector.read(vec)
                         res = Completion.run(query.text, ctx, chat)
+
+                        print(f"{query.text}\n")
                     
-                        for r in res:
+                        for r, end in EndDefIter(res):
                             ans = Answer()
                             ans.id = query.id
                             ans.word = r
+                            ans.end = end
+
                             await ws.send(ans.json_string())
                             PrintColor.BLUE(r, stream=True)
-                        print("\n")
+                            if end:
+                                print("\n")
 
-                        ans = Answer()
-                        ans.id = query.id
-                        ans.end = True
-                        await ws.send(ans.json_string())
-                        
             # reconnect-enabled error
             except ConnectionClosed:
                 print(f"Disconnected from relay ({Config.RELAY.HOST})")

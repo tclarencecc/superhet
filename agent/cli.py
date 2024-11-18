@@ -9,6 +9,7 @@ from agent.storage import Vector
 from agent.llm import Embedding, Completion, Chat
 from agent.config import Config
 from common.helper import PrintColor
+from common.iter import EndDefIter
 
 _CMD_HELP = Config.CLI_CMD_PREFIX + "help"
 _CMD_LIST = Config.CLI_CMD_PREFIX + "list"
@@ -120,9 +121,10 @@ async def cli():
                 ctx = Vector.read(vec)
                 res = Completion.run(input, ctx, chat)
                 
-                for r in res:
+                for r, end in EndDefIter(res):
                     PrintColor.BLUE(r, stream=True)
-                print("\n")
+                    if end:
+                        print("\n")
 
                 lock_time = time.time()
                 
