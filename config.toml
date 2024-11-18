@@ -1,7 +1,7 @@
 [llm]
 [llm.completion]
 # path relative from executable. must be of "gguf" type
-model = "../<model>.gguf"
+model = "./<model>.gguf"
 
 # refer to model card for prompting format used by model
 # valid values: CHATML, GEMMA, LLAMA
@@ -17,7 +17,7 @@ prompt_format = "<prompt format>"
 
 [llm.embedding]
 # path relative from executable. must be of "gguf" type and for embedding use
-model = "../<model>.gguf"
+model = "./<model>.gguf"
 
 [document]
 # boundary between paragraphs and chapters
@@ -46,3 +46,7 @@ host = "<host>"
 
 # unique name to identify your AI in the relay server
 agent_name = "<agent_name>"
+
+# html app to serve to user
+# path relative from executable. must be of "html" type
+html_app = "./<app>.html"

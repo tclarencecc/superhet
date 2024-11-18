@@ -2,18 +2,18 @@ import uuid
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
-from common.data import Query
+from common.data import Query, Request_File
 from relay.agent import Agents
 from relay.decorator import route
 
-@route("GET", "/api/{agent:str}")
+@route("GET", "/a/{agent:str}/query")
 async def _query(req: Request, agent: str):
-    query = Query()
-    query.id = uuid.uuid4().hex
-    query.text = "what is crit rate"
-
     # agent cannot be none or empty as routing would not match
     if Agents.has(agent):
+        query = Query()
+        query.id = uuid.uuid4().hex
+        query.text = "what is crit rate"
+
         ws = Agents.websocket(agent)
         stg = Agents.stream(agent, query.id).new()
         
@@ -23,3 +23,21 @@ async def _query(req: Request, agent: str):
         return Response("Agent unavailable")
 
 query_route = _query()
+
+@route("GET", "/a/{agent:str}")
+async def _html(req: Request, agent: str):
+    # agent cannot be none or empty as routing would not match
+    if Agents.has(agent):
+        rf = Request_File()
+        rf.file_type = "html"
+        rf.id = uuid.uuid4().hex
+
+        ws = Agents.websocket(agent)
+        stg = Agents.stream(agent, rf.id).new()
+        
+        await ws.send_json(rf.json())
+        return StreamingResponse(stg.generator(), media_type="text/html")
+    else:
+        return Response("Agent unavailable")
+
+html_route = _html()

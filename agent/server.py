@@ -1,5 +1,4 @@
 import asyncio
-import base64
 from websockets.asyncio.client import connect
 from websockets.exceptions import InvalidURI, InvalidHandshake, ConnectionClosed
 
@@ -7,9 +6,9 @@ from agent.config import Config
 from agent.storage import Vector
 from agent.llm import Embedding, Completion, Chat
 from common.serde import parse_type
-from common.data import DataType, Notification, Query, Answer
+from common.data import DataType, Notification, Query, Answer, Request_File, Send_File
 from common.helper import PrintColor
-from common.iter import EndDefIter
+from common.iter import EndDefIter, EndDefFile
 
 async def server():
     # TODO load chat history on per user basis
@@ -55,6 +54,24 @@ async def server():
                             PrintColor.BLUE(r, stream=True)
                             if end:
                                 print("\n")
+
+                    elif dt == DataType.REQUEST_FILE:
+                        rf = Request_File(json_str=msg)
+                        if rf.file_type == "html":
+                            path = Config.RELAY.HTML_APP_PATH
+                        else:
+                            # no other type for now
+                            assert rf.file_type == "html"
+                        
+                        with EndDefFile(path, Config.RELAY.HTML_SERVE_SIZE) as res:
+                            for r, end in res:
+                                sf = Send_File()
+                                sf.id = rf.id
+                                sf.part = r # base64.b64encode(r)
+                                sf.binary = False
+                                sf.end = end
+
+                                await ws.send(sf.json_string())
 
             # reconnect-enabled error
             except ConnectionClosed:

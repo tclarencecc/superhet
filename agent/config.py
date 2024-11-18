@@ -108,10 +108,14 @@ class Config:
     class _relay:
         HOST = Toml.Spec("relay.host")
         AGENT_NAME = Toml.Spec("relay.agent_name")
-        API_KEY = None # argv derived
+        HTML_APP_PATH = Toml.Spec("relay.html_app")
+
+        # argv derived
+        API_KEY = None
 
         # hardcoded
         ENDPOINT = "/ws"
+        HTML_SERVE_SIZE = 20480
 
         class _header:
             # hardcoded

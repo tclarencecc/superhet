@@ -2,7 +2,7 @@ from starlette.endpoints import WebSocketEndpoint
 from starlette.websockets import WebSocket
 from starlette.routing import WebSocketRoute
 
-from common.data import DataType, Notification, Answer
+from common.data import DataType, Notification, Answer, Send_File
 from common.serde import parse_type
 from common.asynch import StreamToGenerator
 from relay.config import Config
@@ -26,6 +26,15 @@ class _AgentRoute(WebSocketEndpoint):
             st.get().update(ans.word, ans.end)
 
             if ans.end:
+                st.delete()
+                
+        elif parse_type(data, DataType) == DataType.SEND_FILE:
+            sf = Send_File(data)
+            st = Agents.stream(websocket.headers[Config.HEADER.NAME], sf.id)
+            if not sf.binary:
+                st.get().update(sf.part, sf.end)
+
+            if sf.end:
                 st.delete()
 
     async def on_disconnect(self, websocket: WebSocket, close_code: int):
