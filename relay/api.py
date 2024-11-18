@@ -15,10 +15,10 @@ async def _query(req: Request, agent: str):
     # agent cannot be none or empty as routing would not match
     if Agents.has(agent):
         ws = Agents.websocket(agent)
-        anst = Agents.stream(agent, query.id).new()
+        stg = Agents.stream(agent, query.id).new()
         
         await ws.send_json(query.json())
-        return StreamingResponse(anst.generator())
+        return StreamingResponse(stg.generator())
     else:
         return Response("Agent unavailable")
 

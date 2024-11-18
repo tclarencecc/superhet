@@ -5,7 +5,7 @@ from agent.cli import cli
 from agent.server import server
 from agent.storage import Sql
 from agent.llm import Completion, Embedding
-from common.helper import create_task
+from common.asynch import create_task
 
 def post_config_load():
     # setup non-toml based config values

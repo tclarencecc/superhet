@@ -1,7 +1,5 @@
 import time
 from datetime import datetime, timezone
-import asyncio
-from typing import Coroutine, Callable
 
 class PrintColor:
     @staticmethod
@@ -52,32 +50,3 @@ def timestamp() -> str:
     return datetime.now(
         datetime.now(timezone.utc).astimezone().tzinfo
     ).replace(microsecond=0).isoformat()
-
-# https://gist.github.com/harrisont/38ecc65aaad3481c9221417d7c64fef8
-def create_task(coro: Coroutine, loop: asyncio.AbstractEventLoop) -> Callable:
-    async def error_handled_coro():
-        try:
-            return await coro()
-        except Exception as e:
-            print(e)
-
-        # on initial SIGINT, KeyboardInterrupt is NOT raised
-        # CancelledError is raised after task.cancel
-        # KeyboardInterrupt is raised when run_until_complete is still running & SIGINT is called again
-        except (asyncio.CancelledError, KeyboardInterrupt):
-            # do nothing as task graceful shutdown is already handled
-            pass
-
-    task = loop.create_task(error_handled_coro())
-    task.set_name(coro.__name__) # set name so cancel_handler can distinguish between "my" tasks and system tasks!
-
-    def cancel_handler():
-        task.cancel() # on KeyboardInterrupt, task is not yet cancelled. cancel now
-        loop.run_until_complete(task) # allow task to complete then exit
-
-        # catch any system tasks left behind and let them run to completion
-        for t in asyncio.all_tasks(loop):
-            if t.get_name().startswith("Task-"):
-                loop.run_until_complete(t)
-        
-    return cancel_handler

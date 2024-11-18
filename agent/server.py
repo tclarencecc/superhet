@@ -7,6 +7,7 @@ from agent.storage import Vector
 from agent.llm import Embedding, Completion, Chat
 from common.serde import parse_type
 from common.data import DataType, Notification, Query, Answer
+from common.helper import PrintColor
 
 async def server():
     # TODO load chat history on per user basis
@@ -45,6 +46,8 @@ async def server():
                             ans.id = query.id
                             ans.word = r
                             await ws.send(ans.json_string())
+                            PrintColor.BLUE(r, stream=True)
+                        print("\n")
 
                         ans = Answer()
                         ans.id = query.id

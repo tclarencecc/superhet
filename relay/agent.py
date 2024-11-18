@@ -4,7 +4,7 @@ from starlette.routing import WebSocketRoute
 
 from common.data import DataType, Notification, Answer
 from common.serde import parse_type
-from relay.stream import AnswerStream
+from common.asynch import StreamToGenerator
 from relay.config import Config
 
 class _AgentRoute(WebSocketEndpoint):
@@ -23,7 +23,7 @@ class _AgentRoute(WebSocketEndpoint):
         if parse_type(data, DataType) == DataType.ANSWER:
             ans = Answer(data)
             st = Agents.stream(websocket.headers[Config.HEADER.NAME], ans.id)
-            st.get().update(ans)
+            st.get().update(ans.word, ans.end)
 
             if ans.end:
                 st.delete()
@@ -75,8 +75,8 @@ class Agents:
         # cancel all available (running) streams
         streams: dict = Agents._dict()[name]["streams"]
         for s in streams.keys():
-            anst: AnswerStream = streams[s]
-            anst.cancel()
+            stg: StreamToGenerator = streams[s]
+            stg.cancel()
 
         del Agents._dict()[name]
         Agents._debug()
@@ -97,13 +97,13 @@ class Agents:
             self._streams: dict = Agents._dict()[name]["streams"]
             self._id = id
 
-        def new(self) -> AnswerStream:
-            anst = AnswerStream()
-            self._streams[self._id] = anst
+        def new(self) -> StreamToGenerator:
+            stg = StreamToGenerator(Config.DEBUG)
+            self._streams[self._id] = stg
             self._debug()
-            return anst
+            return stg
         
-        def get(self) -> AnswerStream:
+        def get(self) -> StreamToGenerator:
             return self._streams[self._id]
         
         def delete(self):
