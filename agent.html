@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agent AI</title>
+    <link rel="icon" href="data:,">
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script>
+        print = console.log
+        htmx.defineExtension("stream", {
+            onEvent: function (name, evt) {
+                if (name === "htmx:configRequest") {
+                    evt.detail.headers["Content-Type"] = "application/json"
+                    evt.detail.path = window.location.href + evt.detail.path
+
+                } else if (name === "htmx:beforeRequest") {
+                    var element = evt.detail.elt
+                    if (evt.detail.requestConfig.target) {
+                        element = evt.detail.requestConfig.target
+                    }
+                    element.innerHTML = ""
+                    var xhr = evt.detail.xhr
+                    var lastLength = 0
+                    xhr.addEventListener("readystatechange", function () {
+                        if (xhr.readyState === 2 || xhr.readyState === 3) {
+                            var newText = xhr.responseText.substring(lastLength)
+                            lastLength = xhr.responseText.length
+                            element.innerHTML = element.innerHTML + newText 
+                        }
+                    })
+                }
+            },
+            encodeParameters: function (xhr, parameters, elt) {
+                xhr.overrideMimeType("text/json")
+                return (JSON.stringify(parameters))
+            }
+        })
+    </script>
+</head>
+<body>
+    <form hx-post="/query" hx-ext="stream" hx-target="#answer">
+        <input type="text" name="query" placeholder="Ask me anything">
+        <input type="submit" value="Send">
+    </form>
+    <div id="answer" style="white-space: pre-line"></div>
+</body>
