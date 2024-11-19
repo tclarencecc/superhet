@@ -181,6 +181,9 @@ class Config:
             minmax_validate(Config.CHUNK.OVERLAP, Config.CHUNK.OVERLAP_LIMIT, "[document.chunk] overlap")
             minmax_validate(Config.CHUNK.SIZE, Config.CHUNK.SIZE_LIMIT, "[document.chunk] size")
 
+            if not str(Config.RELAY.AGENT_NAME).isalnum():
+                raise ValueError("[relay] agent_name must be alphanumeric only.")
+
             # formatters
             # clean up relay host 'protocol://'<HOST>'/'
             split_host = str(Config.RELAY.HOST).split("//")
@@ -190,7 +193,7 @@ class Config:
                 Config.RELAY.HOST = str(Config.RELAY.HOST)[:-1]
 
             # replace space with _ in agent_name
-            Config.RELAY.AGENT_NAME = str(Config.RELAY.AGENT_NAME).replace(" ", "_")
+            #Config.RELAY.AGENT_NAME = str(Config.RELAY.AGENT_NAME).replace(" ", "_")
             
         except Exception as e:
             print(e)
