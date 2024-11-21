@@ -1,9 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Agent AI</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>My AI</title>
     <link rel="icon" href="data:,">
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script src="https://unpkg.com/htmx-ext-loading-states@2.0.0/loading-states.js"></script>
+    <style>
+        html {
+            height: 100%;
+            font-size: 16px; /* ios min size for no-zoom text focus */
+            font-family: monospace;
+            color: #444444;
+        }
+        body {
+            height: 100%;
+            margin-top: -8px; /* despite 100% h, page is scrollable w/o this! */
+        }
+        input:focus {
+            outline: none;
+        }
+        input {
+            color: #444444;
+        }
+        input:disabled {
+            color: #aaaaaa;
+        }
+        .chat-bubble-user {
+            margin: 3rem 0.5rem 1rem 0.5rem;
+            background-color: rgb(244 244 244);
+            padding: 0.5rem 1rem;
+            border-radius: 0.8rem;
+            width: fit-content;
+            max-width: 50%;
+        }
+        .chat-bubble-user:first-of-type {
+            margin-top: -0.5rem;
+        }
+        .chat-bubble-ai {
+            margin: 0.5rem 0.8rem;
+            background-color: white;
+        }
+        .chat-bubble-ai:last-of-type {
+            margin-bottom: 1rem;
+        }
+        .form {
+            margin: 0 0.25rem;
+        }
+        @media screen and (min-width: 48em) {
+            .form {
+                margin: 0 0.75rem;
+            }
+        }
+    </style>
     <script>
         print = console.log
         htmx.defineExtension("stream", {
@@ -11,22 +61,44 @@
                 if (name === "htmx:configRequest") {
                     evt.detail.headers["Content-Type"] = "application/json"
                     evt.detail.path = window.location.href + evt.detail.path
+                    evt.detail.target = document.getElementById("answer")
+                    evt.detail.target["__query"] = document.getElementById("query")
 
                 } else if (name === "htmx:beforeRequest") {
-                    var element = evt.detail.elt
-                    if (evt.detail.requestConfig.target) {
-                        element = evt.detail.requestConfig.target
+                    var chat = evt.detail.requestConfig.target
+                    query = chat["__query"]
+                    if (query.value === "") {
+                        evt.preventDefault()
+                        return
                     }
-                    element.innerHTML = ""
+
+                    const qdiv = document.createElement("div")
+                    qdiv.innerHTML = query.value
+                    qdiv.className = "chat-bubble-user"
+                    chat.appendChild(qdiv)
+                    chat.scrollTop = chat.scrollHeight
+                    query.value = "Thinking..."
+
                     var xhr = evt.detail.xhr
-                    var lastLength = 0
+                    var lastLen = 0
+                    var adiv = null
+
                     xhr.addEventListener("readystatechange", function () {
                         if (xhr.readyState === 2 || xhr.readyState === 3) {
-                            var newText = xhr.responseText.substring(lastLength)
-                            lastLength = xhr.responseText.length
-                            element.innerHTML = element.innerHTML + newText 
+                            if (adiv === null) {
+                                adiv = document.createElement("div")
+                                adiv.className = "chat-bubble-ai"
+                                chat.appendChild(adiv)
+                            }
+
+                            var newText = xhr.responseText.substring(lastLen)
+                            lastLen = xhr.responseText.length
+                            adiv.innerHTML = adiv.innerHTML + newText
+                            chat.scrollTop = chat.scrollHeight
                         }
                     })
+                } else if (name === "htmx:afterSettle") {
+                    evt.detail.requestConfig.target["__query"].value = ""
                 }
             },
             encodeParameters: function (xhr, parameters, elt) {
@@ -36,10 +108,24 @@
         })
     </script>
 </head>
-<body>
-    <form hx-post="/query" hx-ext="stream" hx-target="#answer">
-        <input type="text" name="query" placeholder="Ask me anything">
-        <input type="submit" value="Send">
-    </form>
-    <div id="answer" style="white-space: pre-line"></div>
+<body hx-ext="loading-states">
+    <div style="max-width: 48rem; height: 100%; margin: 0 auto; display: flex; flex-direction: column;">
+        <div style="align-items: stretch;">
+            <div style="height: 2.5rem; margin: 1rem 0.5rem 0.5rem 0.5rem; border-radius: 1.5rem; padding: 0.625rem;
+                background-color: rgb(244 244 244);">
+                <form hx-post="/query" hx-ext="stream" hx-swap="none" class="form"
+                    style="height: 100%; overflow: hidden; display: flex; flex-direction: row;">
+                    <input type="text" id="query" name="query" placeholder="Ask My AI"
+                        autocomplete="off" autocapitalize="none" data-loading-disable
+                        style="width: 100%; border: 0; background-color: transparent;
+                            font-size: 1rem; font-family: monospace;">
+                    <input type="submit" value="→" data-loading-disable style="width: 3rem;
+                        font-size: 1.5rem; background-color: transparent; border: 0;">
+                </form>
+            </div>
+        </div>
+        <div id="answer" style="flex-grow: 5; align-items: stretch; overflow-y: auto;
+            font-size: 0.9rem; white-space: pre-line;">
+        </div>
+    </div>
 </body>
