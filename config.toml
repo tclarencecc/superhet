@@ -48,5 +48,5 @@ host = "<host>"
 agent_name = "<agent_name>"
 
 # html app to serve to user
-# path relative from executable. must be of "html" type
-html_app = "./<app>.html"
+# path relative from executable. must be of "html" type. default is ./agent.html
+html_app = "./agent.html"

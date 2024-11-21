@@ -13,7 +13,8 @@ a = Analysis(
         (".venv/lib/python3.12/site-packages/llama_cpp/lib/libggml.dylib", "llama_cpp/lib")
     ],
     datas=[
-        ("config.toml", ".")
+        ("config.toml", "."),
+        ("agent.html", ".")
     ],
     hiddenimports=[],
     hookspath=[],
@@ -53,6 +54,7 @@ coll = COLLECT(
 )
 
 shutil.move(f"./dist/{name}/_internal/config.toml", f"./dist/{name}/config.toml")
+shutil.move(f"./dist/{name}/_internal/agent.html", f"./dist/{name}/agent.html")
 
 print("----- INFO: Building tar.gz archive")
 src = f"./dist/{name}"
