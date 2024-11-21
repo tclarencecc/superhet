@@ -108,7 +108,7 @@ class Config:
     class _relay:
         HOST = Toml.Spec("relay.host")
         AGENT_NAME = Toml.Spec("relay.agent_name")
-        HTML_APP_PATH = Toml.Spec("relay.html_app")
+        HTML_APP_PATH = Toml.Spec("relay.html_app", "./agent.html")
 
         # argv derived
         API_KEY = None
