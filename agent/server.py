@@ -1,4 +1,6 @@
 import asyncio
+import certifi
+import ssl
 from websockets.asyncio.client import connect
 from websockets.exceptions import InvalidURI, InvalidHandshake, ConnectionClosed
 
@@ -18,12 +20,15 @@ async def server():
         (Config.RELAY.HEADER.NAME, Config.RELAY.AGENT_NAME),
         (Config.RELAY.HEADER.KEY, Config.RELAY.API_KEY),
     ]
+    protocol = "wss://" if Config.RELAY.ENABLE_TLS else "ws://"
+    ssl_ctx = ssl.create_default_context(cafile=certifi.where()) if Config.RELAY.ENABLE_TLS else None
 
     try:
         # connect() already does exponential backoff on connection retries
         # https://websockets.readthedocs.io/en/stable/reference/asyncio/client.html#
-        async for ws in connect(f"ws://{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}",
-            additional_headers=headers):
+        async for ws in connect(f"{protocol}{Config.RELAY.HOST}{Config.RELAY.ENDPOINT}",
+            additional_headers=headers,
+            ssl=ssl_ctx):
             
             # set name for helper.create_task.cancel_handler!
             ws.keepalive_task.set_name("keepalive")

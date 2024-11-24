@@ -110,6 +110,9 @@ class Config:
         AGENT_NAME = Toml.Spec("relay.agent_name")
         HTML_APP_PATH = Toml.Spec("relay.html_app", "./agent.html")
 
+        # derived during processing HOST
+        ENABLE_TLS = False
+
         # argv derived
         API_KEY = None
 
@@ -191,6 +194,9 @@ class Config:
                 Config.RELAY.HOST = split_host[1]
             if str(Config.RELAY.HOST).endswith("/"):
                 Config.RELAY.HOST = str(Config.RELAY.HOST)[:-1]
+
+            if str(Config.RELAY.HOST).lower() != "localhost":
+                Config.RELAY.ENABLE_TLS = True
 
             # replace space with _ in agent_name
             #Config.RELAY.AGENT_NAME = str(Config.RELAY.AGENT_NAME).replace(" ", "_")
