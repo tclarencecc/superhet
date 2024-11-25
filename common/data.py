@@ -17,6 +17,7 @@ class Notification(Serde):
 class Query(Serde):
     def __init__(self, json_str=""):
         self.id = ""
+        self.session = ""
         self.text = ""
         super().__init__(DataType.QUERY, json_str)
 

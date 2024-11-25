@@ -12,6 +12,9 @@ class Config:
         KEY = "Agent-Apikey"
     HEADER = _header
 
+    # hardcoded
+    SESSION_VALIDITY = 1296000 # 15 days
+
 
     @staticmethod
     def load():

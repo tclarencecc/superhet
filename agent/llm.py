@@ -12,7 +12,7 @@ class Chat:
         def __init__(self):
             self.query = ""
             self.context = ""
-            self.cot = ""
+            #self.cot = ""
             self.answer = ""
 
     def __init__(self):
@@ -161,19 +161,18 @@ system="If question requires analysis, do not answer and say 'Not enough context
             yield r
 
         t = time.time() - t
+        yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
 
         entry = Chat.Entry()
         entry.query = query
         entry.context = ctx
-        entry.cot = cot.value()
-        entry.answer = Completion._exec(f"""Context: {entry.cot}
+        #entry.cot = cot.value()
+        entry.answer = Completion._exec(f"""Context: {cot.value()}
 Extract the output only, do not add anything. If no output can be found, summarize the context.""").static
         chat.add(entry)
         #print(f"\n{entry.answer}")
         
-        yield f"\n{t:.1f} sec @ {(count / t):.1f} token/sec"
-
-
+        
 class Embedding:
     _instance = None
 

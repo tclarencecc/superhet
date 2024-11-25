@@ -13,9 +13,6 @@ from common.helper import PrintColor
 from common.iter import EndDefIter, EndDefFile
 
 async def server():
-    # TODO load chat history on per user basis
-    chat = Chat()
-
     headers = [
         (Config.RELAY.HEADER.NAME, Config.RELAY.AGENT_NAME),
         (Config.RELAY.HEADER.KEY, Config.RELAY.API_KEY),
@@ -45,6 +42,7 @@ async def server():
                         query = Query(json_str=msg)
                         vec = Embedding.from_string(query.text)
                         ctx = Vector.read(vec)
+                        chat = Sessions.get(query.session)
                         res = Completion.run(query.text, ctx, chat)
 
                         print(f"{query.text}\n")
@@ -93,3 +91,21 @@ async def server():
         print(f"Unable to find relay at {Config.RELAY.HOST}")
     except (InvalidHandshake, TimeoutError):
         print(f"Connection refused by relay ({Config.RELAY.HOST})")
+
+
+class Sessions:
+    _instance = None
+
+    @staticmethod
+    def _dict() -> dict:
+        if Sessions._instance is None:
+            Sessions._instance = {}
+        return Sessions._instance
+    
+    @staticmethod    
+    def get(id: str) -> Chat:
+        chat = Sessions._dict().get(id, None)
+        if chat is None:
+            chat = Chat()
+            Sessions._dict()[id] = chat
+        return chat
