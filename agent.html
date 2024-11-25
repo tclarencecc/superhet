@@ -91,14 +91,19 @@
                                 chat.appendChild(adiv)
                             }
 
-                            var newText = xhr.responseText.substring(lastLen)
-                            lastLen = xhr.responseText.length
-                            adiv.innerHTML = adiv.innerHTML + newText
-                            chat.scrollTop = chat.scrollHeight
+                            if (xhr.status === 200) {
+                                var newText = xhr.responseText.substring(lastLen)
+                                lastLen = xhr.responseText.length
+                                adiv.innerHTML = adiv.innerHTML + newText
+                                chat.scrollTop = chat.scrollHeight
+                            }
                         }
                     })
                 } else if (name === "htmx:afterSettle") {
                     evt.detail.requestConfig.target["__query"].value = ""
+                } else if (name === "htmx:responseError") {
+                    evt.detail.requestConfig.target["__query"].value = ""
+                    window.alert(evt.detail.xhr.responseText)
                 }
             },
             encodeParameters: function (xhr, parameters, elt) {
