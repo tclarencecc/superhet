@@ -1,8 +1,8 @@
 import uuid
 import sys
-from argparse import ArgumentParser
 from enum import Enum
 from typing import Callable
+#from argparse import ArgumentParser
 
 from common.toml import Toml
 
@@ -107,14 +107,12 @@ class Config:
 
     class _relay:
         HOST = Toml.Spec("relay.host")
+        API_KEY = Toml.Spec("relay.api_key")
         AGENT_NAME = Toml.Spec("relay.agent_name")
         HTML_APP_PATH = Toml.Spec("relay.html_app", "./agent.html")
 
         # derived during processing HOST
         ENABLE_TLS = False
-
-        # argv derived
-        API_KEY = None
 
         # hardcoded
         ENDPOINT = "/ws"
@@ -147,15 +145,15 @@ class Config:
         else:
             config_path = "../dev.toml" # outside project folder
 
-        parser = ArgumentParser()
-        parser.add_argument("exe") # ./agent itself, just ignore
-        parser.add_argument("--config", type=str, required=False)
-        parser.add_argument("--apikey", type=str, required=False)
-        arg = parser.parse_args(sys.argv)
+        # parser = ArgumentParser()
+        # parser.add_argument("exe") # ./agent itself, just ignore
+        # parser.add_argument("--config", type=str, required=False)
+        # parser.add_argument("--apikey", type=str, required=False)
+        # arg = parser.parse_args(sys.argv)
 
-        # override config path if specified
-        if arg.config is not None:
-            config_path = arg.config
+        # # override config path if specified
+        # if arg.config is not None:
+        #     config_path = arg.config
 
         try:
             with Toml(config_path) as t:
@@ -171,10 +169,6 @@ class Config:
             elif Config.CHUNK.SCRIPT == DocumentScript.HANZI:
                 # multiple chars can be just 1 token; assume worst case 1 token-per-char with small allowance
                 Config.CHUNK.SIZE_LIMIT.MAX = int(Config.LLAMA.EMBEDDING.CONTEXT * 0.8)
-
-            # setup argv based config values
-            if arg.apikey is not None:
-                Config.RELAY.API_KEY = arg.apikey
 
             # validations
             def minmax_validate(val, limit: _min_max, text: str):

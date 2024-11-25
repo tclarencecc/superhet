@@ -44,6 +44,9 @@ overlap = <#>
 # address of relay server
 host = "<host>"
 
+# api key needed to authenticate with relay server
+api_key = "<api key>"
+
 # unique name to identify your AI in the relay server
 agent_name = "<agent_name>"
 
