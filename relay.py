@@ -1,11 +1,8 @@
 import uvicorn
 
-from relay.config import Config
+prod = False
 
-Config.load()
-
-if Config.IN_PROD:
-    # ssl paths are default certbot folder locations
+if prod:
     uvicorn.run("relay.main:app", host="0.0.0.0", port=443,
         ssl_keyfile="/etc/letsencrypt/live/superhet.top/privkey.pem",
         ssl_certfile="/etc/letsencrypt/live/superhet.top/cert.pem",

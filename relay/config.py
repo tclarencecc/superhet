@@ -6,8 +6,6 @@ class Config:
     API_KEY = None
     DEBUG = False
 
-    IN_PROD = False # derived from API_KEY
-
     class _header:
         # hardcoded
         NAME = "Agent-Name"
@@ -28,9 +26,6 @@ class Config:
 
         if arg.relay_apikey is not None:
             Config.API_KEY = arg.relay_apikey
-
-        if Config.API_KEY is not None and len(Config.API_KEY) > 5:
-            Config.IN_PROD = True
 
         if arg.relay_debug is not None:
             Config.DEBUG = arg.relay_debug
