@@ -20,7 +20,7 @@ If [pip-tools](https://pypi.org/project/pip-tools/) is installed, simply run:
 pip-sync requirements.txt dev-requirements.txt
 ```
 
-As Superhet uses llama-cpp-python as its inference engine, depending on your computer's GPU, you may need to include a build flag to enable it.
+As Superhet uses llama-cpp as its inference engine, depending on your GPU, you may need to include a build flag to enable it.
 
 Refer to [llama-cpp-python supported backends](https://github.com/abetlen/llama-cpp-python#supported-backends) for your device's flag.
 
@@ -146,7 +146,7 @@ pip install websockets
 ### Run
 To run the relay, you can either run it via:
 * uvicorn directly serving http/https
-* same as above but invoke uvicorn inside a python script
+* same as above but invoke uvicorn inside a python script. Refer to ###./relay.py###
 * uvicorn behind nginx
 
 Either way, make sure to include the following required flag when running uvicorn
@@ -157,3 +157,16 @@ Also include this optional flag for more verbose logging
 ```
 --relay-debug
 ```
+
+## Limitations
+### Agent
+Agent is only built and tested on Apple Silicon with Metal GPU enabled. Linux builds should *work* 
+with the only difference being the build step having CUDA or other flags used instead.
+
+### Relay
+Relay only runs as a single instance server (for now). If you run multiple Relays behind a load balancer,
+there is no *common bus* to coordinate between instances regarding which Agents and web users are connected
+to which machine. 
+
+## License
+MIT
