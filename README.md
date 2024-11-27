@@ -146,7 +146,7 @@ pip install websockets
 ### Run
 To run the relay, you can either run it via:
 * uvicorn directly serving http/https
-* same as above but invoke uvicorn inside a python script. Refer to ###./relay.py###
+* same as above but invoke uvicorn inside a python script. Refer to **./relay.py**
 * uvicorn behind nginx
 
 Either way, make sure to include the following required flag when running uvicorn
@@ -161,7 +161,7 @@ Also include this optional flag for more verbose logging
 ### Access
 Access your Agent from the web
 ```
-<http/s://your_host>/a/<your agent name>
+https://<your_host>/a/<your_agent_name>
 ```
 
 ## Limitations
