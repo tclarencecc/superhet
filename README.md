@@ -158,6 +158,12 @@ Also include this optional flag for more verbose logging
 --relay-debug
 ```
 
+### Access
+Access your Agent from the web
+```
+<http/s://your_host>/a/<your agent name>
+```
+
 ## Limitations
 ### Agent
 Agent is only built and tested on Apple Silicon with Metal GPU enabled. Linux builds should *work* 
