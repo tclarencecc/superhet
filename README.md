@@ -1,15 +1,19 @@
 # Superhet
 
-Superhet is a local & privacy-first [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) app that lets you *chat with your data* offline or through the web.
+Superhet is a local & privacy-first LLM [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) app that lets you *chat with your data* offline or through the web.
 It is comprised of 2 components, an **Agent** app running on your local computer and a **Relay** hosted on an internet accessible server.
 
-### Agent
+## Agent
+<img width="716" alt="1" src="https://github.com/user-attachments/assets/40f8239c-e81b-4028-9f8a-5fb9546bda8c">
+
 - Self contained CLI-based RAG app
 - Built-in vector database and LLM inferencing
 - Fully functioning offline
 - Run on your own computer or a server behind NAT; Relay makes it internet accessible
 
-### Relay
+## Relay
+<img width="774" alt="2" src="https://github.com/user-attachments/assets/84f1bd61-f746-425c-879a-8e3c2ee9f304">
+
 - Lightweight server app that can accomodate multiple connecting Agents
 - Each connected Agents have their own url
 - Acts as a bridge to securely expose RAG functionality of connected Agents to the internet
