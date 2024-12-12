@@ -4,7 +4,6 @@ import time
 import json
 
 from common.decorator import suppress_print
-from agent.llm import Chat
 
 class _Llama:
     class _Config:
@@ -32,7 +31,8 @@ class _Llama:
             "llm_load_vocab:",
             "llama_new_context_with_model:",
             "ggml_metal_init: loaded kernel",
-            "ggml_metal_init: skipping"))
+            "ggml_metal_init: skipping",
+            "llm_load_print_meta:"))
         def ctor():
             return Llama(self._config.model,
                 n_gpu_layers=-1,
@@ -67,6 +67,14 @@ class _Llama:
     #     "maxItems": 100
     # }
     def __call__(self, input: str | dict, grammar: dict=None, benchmark=False) -> Self:
+        """
+        input dict type format:\n
+        {
+            system: str,
+            user: str,
+            chat: [tuple[str, str]]
+        }
+        """
         self._comp_text = None
         self._comp_chat = None
         self._grammar = grammar
@@ -83,17 +91,16 @@ class _Llama:
                     "content": input["system"]
                 })
             if "chat" in input:
-                chat: Chat = input["chat"]
-                for v in chat._deque:
-                    if v is not None:
-                        msg.append({
-                            "role": "user",
-                            "content": v.query
-                        })
-                        msg.append({
-                            "role": "assistant",
-                            "content": v.answer
-                        })
+                chat: list[tuple[str, str]] = input["chat"]
+                for v in chat:
+                    msg.append({
+                        "role": "user",
+                        "content": v[0]
+                    })
+                    msg.append({
+                        "role": "assistant",
+                        "content": v[1]
+                    })
             if "user" in input:
                 msg.append({
                     "role": "user",

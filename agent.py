@@ -15,7 +15,7 @@ def post_config_load():
 
 Config.load_from_toml(post_config_load)
 
-_ = Completion._llm() # log llama init now
+Completion.init() # log llama init now
 
 with Sql():
     loop = asyncio.new_event_loop()
