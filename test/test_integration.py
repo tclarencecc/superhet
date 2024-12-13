@@ -39,7 +39,7 @@ class TestIntegration(IsolatedAsyncioTestCase):
         sql = Sql()
         sql.start()
 
-        _ = Completion._llm()
+        Completion.init()
 
     @classmethod
     def tearDownClass(cls):

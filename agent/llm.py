@@ -1,11 +1,10 @@
-from llama_cpp import Llama
 from typing import Iterable, Iterator
 import time
 from collections import deque
 
 from agent.config import Config, PromptFormat
 from common.string import MutableString
-from agent.llm_base import Llm, _Llama
+from agent.llm_base import Llm
 
 class Chat:
     class Entry:
@@ -37,18 +36,17 @@ class Chat:
 
 
 class Completion:
-    _llm: _Llama = None
+    _llm: Llm = None
 
     @staticmethod
     def init():
         if Completion._llm is None:
-            Llm["Completion"] = {
+            Completion._llm = Llm({
                 "model": Config.LLAMA.COMPLETION.MODEL,
                 "n_ctx": Config.LLAMA.COMPLETION.CONTEXT_SIZE,
                 "flash_attn": Config.LLAMA.COMPLETION.FLASH_ATTENTION,
                 "debug": Config.DEBUG
-            }
-            Completion._llm = Llm["Completion"]
+            })
 
     @staticmethod
     def run(query: str, ctx: str, chat: Chat) -> Iterator[str]:
@@ -113,34 +111,33 @@ Extract the output only, do not add anything. If no output can be found, summari
         
         
 class Embedding:
-    _instance = None
+    _llm: Llm = None
 
     @staticmethod
-    def _llm() -> Llama:
-        if Embedding._instance is None:
-            Embedding._instance = Llama(Config.LLAMA.EMBEDDING.MODEL,
-                n_gpu_layers=-1,
-                n_ctx=0,
-                embedding=True,
-                verbose=False
-            )
-        return Embedding._instance
-        
+    def _init():
+        if Embedding._llm is None:
+            Embedding._llm = Llm({
+                "model": Config.LLAMA.EMBEDDING.MODEL,
+                "n_ctx": 0,
+                "embedding": True
+            })
+
     @staticmethod
     def stats() -> tuple[int, int]:
         """
         stats of the embedding model\n
         returns: [embedding dimension, context length]
         """
-        return (Embedding._llm()._model.n_embd(), Embedding._llm()._model.n_ctx_train())
+        Embedding._init()
+        return (Embedding._llm.stats["n_embd"], Embedding._llm.stats["n_ctx_train"])
 
     @staticmethod
     def from_string(input: str) -> list[float]:
         """
         adhoc convert single string to vector
         """
-        res = Embedding._llm().create_embedding(input)
-        return res["data"][0]["embedding"]
+        Embedding._init()
+        return Embedding._llm(input).embed
 
     def __init__(self, input: Iterable[str]):
         self._iterable = input
@@ -162,9 +159,8 @@ class Embedding:
                 self._eof = True
                 break
 
-            res = Embedding._llm().create_embedding(chunk)
             chunks.append(chunk)
-            vectors.append(res["data"][0]["embedding"])
+            vectors.append(Embedding.from_string(chunk))
 
         # handle case where current "next" just reached the end and had nothing to return
         if len(vectors) == 0 and self._eof:

@@ -2,25 +2,27 @@ from llama_cpp import Llama, llama_chat_format
 from typing import Iterable, Self
 import time
 import json
+import gc
 
 from common.decorator import suppress_print
 
-class _Llama:
-    class _Config:
+class Llm:
+    class Config:
         def __init__(self, d: dict):
             self.model = ""
             self.n_ctx = 0
             self.lora_path = None
             self.lora_scale = 1.0
             self.flash_attn = False
+            self.embedding = False
             self.temperature = 0.0
-            self.debug = True
+            self.debug = False
 
             for k, v in d.items():
                 setattr(self, k, v)
 
     def __init__(self, d: dict):
-        self._config = _Llama._Config(d)
+        self._config = Llm.Config(d)
 
         @suppress_print((
             "Model metadata:",
@@ -40,6 +42,7 @@ class _Llama:
                 lora_path=self._config.lora_path,
                 lora_scale=self._config.lora_scale,
                 flash_attn=self._config.flash_attn,
+                embedding=self._config.embedding,
                 verbose=self._config.debug
             )
 
@@ -50,8 +53,14 @@ class _Llama:
 
         self._comp_text: str = None
         self._comp_chat: list = None
+        self._emb_text: str = None
+
         self._grammar = None
         self._benchmark = False
+
+    def close(self):
+        del self._llama
+        gc.collect()
 
     # grammar = {
     #     "type": "array",
@@ -81,7 +90,10 @@ class _Llama:
         self._benchmark = benchmark
 
         if type(input) is str:
-            self._comp_text = input
+            if self._config.embedding:
+                self._emb_text = input
+            else:
+                self._comp_text = input
 
         elif type(input) is dict:
             msg = []
@@ -140,7 +152,14 @@ class _Llama:
             temperature=self._config.temperature,
             response_format=response_format
         )
-
+    
+    @property
+    def stats(self) -> dict:
+        return {
+            "n_embd": self._llama._model.n_embd(),
+            "n_ctx_train": self._llama._model.n_ctx_train()
+        }
+    
     @property
     def stream(self) -> Iterable[str]:
         count = 0
@@ -174,20 +193,8 @@ class _Llama:
     @property
     def json(self) -> any:
         return json.loads(self.static)
-
-
-class _LlmMeta(type):
-    def __getitem__(cls, name: str) -> _Llama:
-        return Llm._dict()[name]
     
-    def __setitem__(cls, name: str, d: dict):
-        Llm._dict()[name] = _Llama(d)
-
-class Llm(object, metaclass=_LlmMeta):
-    _instance = None
-
-    @staticmethod
-    def _dict() -> dict:
-        if Llm._instance is None:
-            Llm._instance = {}
-        return Llm._instance
+    @property
+    def embed(self) -> list[float]:
+        res = self._llama.create_embedding(self._emb_text)
+        return res["data"][0]["embedding"]
